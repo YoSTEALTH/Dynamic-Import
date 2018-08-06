@@ -1,7 +1,7 @@
-Smuggler
-========
+NoName
+======
 
-Smuggler is dynamic python run-time importer and easy to use module
+NoName is dynamic python run-time importer and easy to use module
 import path name.
 
 Install
@@ -11,7 +11,7 @@ Install directly from pip using:
 
 .. code-block:: text
 
-    pip install smuggler
+    pip install noname
 
 
 Example
@@ -21,7 +21,7 @@ Example
 
 .. code-block:: python
     
-    from smuggler import importer
+    from noname import importer
 
     # Static Importer
     from .direct import static
