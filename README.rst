@@ -4,16 +4,6 @@ NoName
 NoName is dynamic python run-time importer and easy to use module
 import path name.
 
-Install
--------
-
-Install directly from pip using:
-
-.. code-block:: text
-
-    pip install noname
-
-
 Example
 -------
 
