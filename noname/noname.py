@@ -90,7 +90,7 @@ class Module(ModuleType):
             # Lets return dynamically imported module
             return self.__dict__[name]  # > getattr(module, name)
 
-        # Stragglers, lets ModuleType handle it.
+        # Stragglers, lets let ModuleType handle it.
         return ModuleType.__getattribute__(self, name)
 
     def __dir__(self):
