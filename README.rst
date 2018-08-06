@@ -49,7 +49,7 @@ Example
     print(c())
     print()
     # Note
-    #   Only "sample", "sample.direct" & "sample.one" modules are loaded at this point.
+    #   Now "sample", "sample.direct" & "sample.one" modules are loaded at this point.
 
     # Dynamic Import #2
     # -----------------
