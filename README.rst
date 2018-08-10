@@ -7,7 +7,7 @@ Lets you dynamically/lazily import python module on run-time. Also enables easy 
 Install
 -------
 
-Easily install with `pip`_:
+Easily install with `pip`:
 
 .. code-block:: text
 
