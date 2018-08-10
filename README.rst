@@ -7,7 +7,7 @@ Lets you dynamically/lazily import python module on run-time. Also enables easy 
 Install
 -------
 
-Easily install with `pip`:
+use `pip`_ to install:
 
 .. code-block:: text
 
@@ -70,3 +70,6 @@ Example
     print(z())
     # Note
     #   All "sample", "sample.direct", "sample.one" & "sample.two" modules are loaded.
+
+
+.. _pip: https://pip.pypa.io/en/stable/quickstart/
