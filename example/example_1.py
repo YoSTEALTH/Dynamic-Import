@@ -1,9 +1,9 @@
+import sys
 try:
     # Just to see if "dynamic_import" is installed
     import dynamic_import  # noqa
 except ImportError:
     # Localized development test if "dynamic_import" isn't installed.
-    import sys
     import os.path
     sys.path.insert(
         0,

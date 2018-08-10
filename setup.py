@@ -25,5 +25,3 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules'
     ]
 )
-
-# http https://pypi.python.org/simple/ | grep \'noname\'
