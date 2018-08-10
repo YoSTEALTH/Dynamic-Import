@@ -1,8 +1,8 @@
 try:
-    # Just to see if "noname" is installed
-    import noname  # noqa
+    # Just to see if "dynamic_import" is installed
+    import dynamic_import  # noqa
 except ImportError:
-    # Localized development test if "noname" isn't installed.
+    # Localized development test if "dynamic_import" isn't installed.
     import sys
     import os.path
     sys.path.insert(

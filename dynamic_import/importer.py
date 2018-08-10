@@ -1,11 +1,11 @@
 import sys
 from types import ModuleType
 
-__all__ = ('dynamic_importer',)
-__version__ = '0.9.0'
+__all__ = ('importer',)
+__version__ = '0.9.1'
 
 
-def dynamic_importer(__package__, __all__):
+def importer(__package__, __all__):
     ''' Dynamic run-time importer and easy to use module import path name.
 
         Type
@@ -14,7 +14,7 @@ def dynamic_importer(__package__, __all__):
             return: None
 
         Example
-            >>> dynamic_importer(
+            >>> importer(
             ...     __package__,  # can also use "sample"
             ...     {
             ...         '.one': ('a', 'b', 'c'),  # from .one import 'a', ...
@@ -29,13 +29,13 @@ def dynamic_importer(__package__, __all__):
     module = Module(__package__, __all__)
 
     # Note
-    #   Since "dynamic_importer()" is located in "__init__.py" file
+    #   Since "importer()" is located in "__init__.py" file
     #   the package is already created, so lets use that.
     current_module = sys.modules[__package__]
 
     # Note
     #   - lets keep everything from the current module as is.
-    #   - enables importing directly before "dynamic_importer()" is called.
+    #   - enables importing directly before "importer()" is called.
     #   - also doesn't break features like exceptions, ...
     module.__dict__.update(current_module.__dict__)
 

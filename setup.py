@@ -4,16 +4,16 @@ with open('README.rst', 'r') as file:
     long_description = file.read()
 
 setup(
-    name='noname',
-    version='0.9.0',
+    name='dynamic_import',
+    version='0.9.1',
     author='STEALTH',
     author_email='ritesh@stealthcentral.com',
-    description="Dynamic run-time importer & easy to use module import path.",
+    description="Dynamically/Lazily import python module on run-time. Also enables easy to use import path name.",
     long_description=long_description,
     long_description_content_type="text/x-rst",
     python_requires='>=3.5',
     packages=find_packages(),
-    url='https://github.com/YoSTEALTH/noname',
+    url='https://github.com/YoSTEALTH/Dynamic-Import',
     classifiers=[
         # Info: https://pypi.python.org/pypi?%3Aaction=list_classifiers
         'License :: Public Domain',

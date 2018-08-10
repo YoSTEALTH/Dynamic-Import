@@ -1,6 +1,6 @@
 try:
     # Installed version
-    from noname import dynamic_importer
+    from dynamic_import import importer
 except ImportError:
     # Local version
     import sys
@@ -9,17 +9,17 @@ except ImportError:
         0,
         os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
     )
-    from noname import dynamic_importer
+    from dynamic_import import importer
 
 
 # Static Importer
 from .direct import static  # noqa
 # Note
 #   This is to demonstrate that you can still import modules directly
-#   before "dynamic_importer()" is called.
+#   before "importer()" is called.
 
 # Dynamic Importer
-dynamic_importer(
+importer(
     __package__,
     {
         '.one': ('a', 'b', 'c'),  # from .one import a, b, c
