@@ -1,8 +1,8 @@
-NoName yet!
-===========
+Dynamic Import
+==============
 
-NoName is dynamic python run-time importer and easy to use module
-import path name.
+Lets you dynamically/lazily import python module on run-time. Also enables easy to use import path name.
+
 
 Example
 -------
@@ -11,16 +11,17 @@ Example
 
 .. code-block:: python
     
-    from noname import dynamic_importer
+    from dynamic_import import importer
+
 
     # Static Importer
     from .direct import static
     # Note
     #   This is to demonstrate that you can still import modules directly
-    #   before "dynamic_importer()" is called.
+    #   before "importer()" is called.
 
     # Dynamic Importer
-    dynamic_importer(
+    importer(
         __package__,
         {
             '.one': ('a', 'b', 'c'),  # same as ```from .one import a, b, c```
