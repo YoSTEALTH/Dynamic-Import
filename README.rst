@@ -4,6 +4,16 @@ Dynamic Import
 Lets you dynamically/lazily import python module on run-time. Also enables easy to use import path name.
 
 
+Install
+-------
+
+Easily install with `pip`_:
+
+.. code-block:: text
+
+    pip install dynamic_import
+
+
 Example
 -------
 
