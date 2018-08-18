@@ -51,3 +51,16 @@ if __name__ == '__main__':
         print('ERROR: Something isn\'t right `from sample import x, y, z`')
     print()
     # print(sys.modules.keys())
+
+    # Dynamic Import #3
+    # -----------------
+    from sample import o
+    _ = dir(sys.modules['sample'])
+    find = ('o' in _,)
+    print('Find var "o":', find)
+    if all(find):
+        o()
+    else:
+        print('ERROR: Something isn\'t right `from sample import o`')
+    print()
+    # print(sys.modules.keys())
