@@ -24,5 +24,6 @@ importer(
     {
         '.one': ('a', 'b', 'c'),  # from .one import a, b, c
         '.two': ('x', 'y', 'z'),  # from .two import x, y, z
+        '.local': ('o',),
     }
 )
