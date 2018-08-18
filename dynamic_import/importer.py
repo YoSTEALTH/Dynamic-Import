@@ -2,7 +2,7 @@ import sys
 from types import ModuleType
 
 __all__ = ('importer',)
-__version__ = '0.9.1'
+__version__ = '0.9.2'
 
 
 def importer(__package__, __all__):
@@ -47,23 +47,22 @@ class Module(ModuleType):
     # ModuleType = type(sys.modules)
 
     def __init__(self, pkg, _all, *args, **kwargs):
-        reverse = {}
+        # Assign
+        self.___all = {}  # {'test.one': ('a', 'b', 'c'), ...}
+        self.___reverse = {}  # {'a': 'test.one', ...}
         for key, values in _all.items():
             # Lets convert relative to static import!
             # e.g: '.one' -to-> 'test.one'
-            if key[0:1] == '.':
-                old_key = key
-                key = pkg + old_key
-                _all[key] = _all.pop(old_key)
+            if key[0] == '.':
+                key = pkg + key
+
+            # New __all__ Holder
+            self.___all[key] = values
 
             # Lest reverse assign values to key
             # e.g: {'test.one': ('a', 'b', 'c')} -to-> {'a: 'test.one', ...}
             for attr in values:
-                reverse[attr] = key
-
-        # Assign
-        self.___all = _all  # {'test.one': ('a', 'b', 'c'), ...}
-        self.___reverse = reverse  # {'a': 'test.one', ...}
+                self.___reverse[attr] = key
 
         # Run original ModuleType.__init__
         super().__init__(pkg, None, *args, **kwargs)
@@ -75,6 +74,10 @@ class Module(ModuleType):
             module = __import__(
                 # e.g: self.___reverse[name]="test.one" and name="a"
                 self.___reverse[name], None, None, [name]
+                # note:
+                #   If there is an error inside "__imort__()" it will raise
+                #   ImportError even if its not related to import as
+                #   sub-error message is suppressed by "__import__()" it seems.
             )
 
             # Note
@@ -84,11 +87,12 @@ class Module(ModuleType):
 
             # e.g: 'a' in ['a', 'b', 'c']
             for attr in self.___all[module.__name__]:
-                # > setattr(self, attr, getattr(module, attr))
                 self.__dict__[attr] = module.__dict__[attr]
+                # setattr(self, attr, getattr(module, attr))
 
             # Lets return dynamically imported module
-            return self.__dict__[name]  # > getattr(module, name)
+            return self.__dict__[name]
+            # return getattr(module, name)
 
         # Stragglers, lets let ModuleType handle it.
         return ModuleType.__getattribute__(self, name)
