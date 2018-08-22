@@ -25,8 +25,11 @@ def importer(__package__, __all__):
         Note
             - Inspired by "werkzeug" dynamic importer.
     '''
+    # Originize import module & variable names ready to be used.
+    _all, _reverse = _arrange(__package__, __all__)
+
     # Start new module import handler
-    module = Module(__package__, __all__)
+    module = _Module(__package__, _all, _reverse)
 
     # Note
     #   Since "importer()" is located in "__init__.py" file
@@ -43,26 +46,73 @@ def importer(__package__, __all__):
     sys.modules[__package__] = module
 
 
-class Module(ModuleType):
+# Internally used function & class
+# v------------------------------v
+
+def _arrange(pkg, all):
+    ''' Arrange "all" and produce value to key dict (_reverse)
+
+        Type
+            pkg: str
+            all: str, Iterable[str]
+            return: Tuple[Dict[str, str], Dict[str, str]]
+
+        Example
+            >>> _all, _reverse = _arrange(
+            ...     'sample',
+            ...     {
+            ...         '.one': ('a', 'b', 'c'),  # from .one import a, b, c
+            ...         '.two': ('x', 'y', 'z'),  # from .two import x, y, z
+            ...         '.local': 'o_o',          # from .local import o_o
+            ...     }
+            ... )
+            >>> _all
+            {
+                'sample.one': ('a', 'b', 'c'),
+                'sample.two': ('x', 'y', 'z'),
+                'sample.local': ('o_o',)
+            }
+            >>> _reverse
+            {
+                'a': 'sample.one',
+                'b': 'sample.one',
+                'c': 'sample.one',
+                'x': 'sample.two',
+                'y': 'sample.two',
+                'z': 'sample.two',
+                'o_o':'sample.local'
+            }
+    '''
+    a = {}  # {'test.one': ('a', 'b', 'c'), ...}
+    r = {}  # {'a': 'test.one', ...}
+    for key, value in all.items():
+        # Lets wrap tuple around str value.
+        if isinstance(value, str):
+            value = (value,)
+
+        # Lets convert relative to static import!
+        # e.g: '.one' -to-> 'test.one'
+        if key[0] == '.':
+            key = pkg + key
+
+        # New __all__ Holder
+        a[key] = value
+
+        # Lest reverse assign value to key
+        # e.g: {'test.one': ('a', 'b', 'c')} -to-> {'a: 'test.one', ...}
+        for attr in value:
+            r[attr] = key
+
+    return a, r
+
+
+class _Module(ModuleType):
     # ModuleType = type(sys.modules)
 
-    def __init__(self, pkg, _all, *args, **kwargs):
+    def __init__(self, pkg, _all, _reverse, *args, **kwargs):
         # Assign
-        self.___all = {}  # {'test.one': ('a', 'b', 'c'), ...}
-        self.___reverse = {}  # {'a': 'test.one', ...}
-        for key, values in _all.items():
-            # Lets convert relative to static import!
-            # e.g: '.one' -to-> 'test.one'
-            if key[0] == '.':
-                key = pkg + key
-
-            # New __all__ Holder
-            self.___all[key] = values
-
-            # Lest reverse assign values to key
-            # e.g: {'test.one': ('a', 'b', 'c')} -to-> {'a: 'test.one', ...}
-            for attr in values:
-                self.___reverse[attr] = key
+        self.___all = _all  # {'test.one': ('a', 'b', 'c'), ...}
+        self.___reverse = _reverse  # {'a': 'test.one', ...}
 
         # Run original ModuleType.__init__
         super().__init__(pkg, None, *args, **kwargs)
