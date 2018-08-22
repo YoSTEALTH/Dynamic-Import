@@ -5,13 +5,14 @@ with open('README.rst', 'r') as file:
 
 setup(
     name='dynamic_import',
-    version='0.9.2',
+    version='0.9.3',
     author='STEALTH',
     author_email='ritesh@stealthcentral.com',
-    description="Dynamically/Lazily import python module on run-time. Also enables easy to use import path name.",
+    description="Dynamically/Lazily import python module on run-time. \
+    Also enables easy to use import path name.",
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    python_requires='>=3.5',
+    python_requires='>=3.6',
     packages=find_packages(),
     url='https://github.com/YoSTEALTH/Dynamic-Import',
     classifiers=[
@@ -19,7 +20,6 @@ setup(
         'License :: Public Domain',
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Topic :: Software Development :: Libraries :: Python Modules'
