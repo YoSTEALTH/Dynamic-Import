@@ -85,7 +85,7 @@ Example
 
 License
 -------
-    - NO Limit what so ever!!! Do whatever. `Read more`_
+    NO Limit what so ever!!! Do whatever. `Read more`_
 
 
 TODO
