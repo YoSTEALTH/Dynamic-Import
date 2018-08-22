@@ -11,7 +11,7 @@ use `pip`_ to install:
 
 .. code-block:: text
 
-    pip install dynamic_import
+    pip install dynamic-import
 
 
 Example
@@ -23,9 +23,8 @@ Example
     
     from dynamic_import import importer
 
-
     # Static Importer
-    from .direct import static
+    from .static import static
     # Note
     #   This is to demonstrate that you can still import modules directly
     #   before "importer()" is called.
@@ -34,13 +33,18 @@ Example
     importer(
         __package__,
         {
-            '.one': ('a', 'b', 'c'),  # same as ```from .one import a, b, c```
-            '.two': ('x', 'y', 'z'),  # same as ```from .two import x, y, z```
+            '.one': ('a', 'b', 'c'),  # from .one import a, b, c
+            '.two': ('x', 'y', 'z'),  # from .two import x, y, z
+            '.local': 'internals',    # from .local import internals
+            # Note -------^
+            #   Here we are using str vs Iterable[str] type since its only
+            #   1 value. This will also work.
         }
     )
 
 
-./example/example_1.py
+
+./example/example.py
 
 .. code-block:: python
 
@@ -50,7 +54,7 @@ Example
     print(static())
     print()
     # Note
-    #   Only "sample" & "sample.direct" modules are loaded at this point.
+    #   Only "sample" & "sample.static" modules are loaded at this point.
 
     # Dynamic Import #1
     # -----------------
@@ -70,6 +74,14 @@ Example
     print(z())
     # Note
     #   All "sample", "sample.direct", "sample.one" & "sample.two" modules are loaded.
+
+    # Dynamic Import #3
+    # -----------------
+    from sample import internals
+    print(internals())
+    # Note
+    #   This is to demonstrate you can relatively import one module from another module.
+
 
 
 .. _pip: https://pip.pypa.io/en/stable/quickstart/
