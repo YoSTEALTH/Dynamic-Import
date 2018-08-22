@@ -83,5 +83,14 @@ Example
     #   This is to demonstrate you can relatively import one module from another module.
 
 
+License
+-------
+    - NO Limit what so ever!!! Do whatever. `Read more`_
+
+
+TODO
+----
+    - Add multi-dimensional dictionary to module naming convention.
 
 .. _pip: https://pip.pypa.io/en/stable/quickstart/
+.. _Read more: https://github.com/YoSTEALTH/Dynamic-Import/blob/master/LICENSE.txt
