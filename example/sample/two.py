@@ -1,13 +1,13 @@
 def x():
-    return 'inside "two.py" calling x()'
+    return 'calling x()'
     #
 
 
 def y():
-    return 'inside "two.py" calling y()'
+    return 'calling y()'
     #
 
 
 def z():
-    return 'inside "two.py" calling z()'
+    return 'calling z()'
     #

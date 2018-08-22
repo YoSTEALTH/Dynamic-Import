@@ -1,13 +1,13 @@
 def a():
-    return 'inside "one.py" calling a()'
+    return 'calling a()'
     #
 
 
 def b():
-    return 'inside "one.py" calling b()'
+    return 'calling b()'
     #
 
 
 def c():
-    return 'inside "one.py" calling c()'
+    return 'calling c()'
     #
