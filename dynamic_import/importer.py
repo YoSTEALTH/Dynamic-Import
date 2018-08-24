@@ -2,7 +2,6 @@ import sys
 from types import ModuleType
 
 __all__ = ('importer',)
-__version__ = '0.9.3'
 
 
 def importer(__package__, __all__):
