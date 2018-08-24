@@ -1,7 +1,7 @@
 Dynamic Import
 ==============
 
-Lets you dynamically/lazily import python module on run-time. Also enables easy to use import path name.
+Lets you dynamically/lazily import python module on run-time, enables easy to use import path name, saves memory. Also makes managing projects easy by not having to worry about nested folder structure producing long import names.
 
 
 Install
@@ -85,7 +85,7 @@ Example
 
 License
 -------
-Free, No Limit what so ever. `Read more`_
+Free, No limit what so ever. `Read more`_
 
 
 TODO
