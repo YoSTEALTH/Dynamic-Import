@@ -7,23 +7,13 @@ Lets you dynamically/lazily import python module on run-time, enables easy to us
 Install, update & uninstall
 ---------------------------
 
-using `pip`_
-
-install:
+Use `pip`_ to:
 
 .. code-block:: text
 
     pip install dynamic-import
 
-update:
-
-.. code-block:: text
-
     pip install --upgrade dynamic-import
-
-uninstall:
-
-.. code-block:: text
 
     pip uninstall dynamic-import
 
