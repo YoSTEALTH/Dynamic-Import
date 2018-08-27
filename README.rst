@@ -10,14 +10,17 @@ Install, update & uninstall
 using `pip`_
 
 install:
+
 .. code-block:: text
     pip install dynamic-import
 
 update:
+
 .. code-block:: text
     pip install --upgrade dynamic-import
 
 uninstall:
+
 .. code-block:: text
     pip uninstall dynamic-import
 
