@@ -90,7 +90,8 @@ Free, No limit what so ever. `Read more`_
 
 TODO
 ----
-    - Add multi-dimensional dictionary to module naming convention.
+    - Add multi-dimensional dictionary to module naming convention. Done, local testing.
+    - Remove "__package__" attribute from importer(), should be automatic!. Done, local testing.
 
 .. _pip: https://pip.pypa.io/en/stable/quickstart/
 .. _Read more: https://github.com/YoSTEALTH/Dynamic-Import/blob/master/LICENSE.txt
