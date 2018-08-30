@@ -1,5 +1,5 @@
 import sys
-from dynamic_import.importer import rearrange
+from dynamic_import.importer import importer, rearrange
 
 
 def test_static_import():
@@ -101,3 +101,11 @@ def test_rearrange():
     _all, _reverse = rearrange('sample', __all__)
     assert _all == find_all
     assert _reverse == find_reverse
+
+
+def test_outside_init():
+    # 'ImportError: "importer()" must be used/called inside "__init__.py" file'
+    try:
+        importer('example.sample', {'one': ('a', 'b', 'c')})
+    except ImportError:
+        assert True

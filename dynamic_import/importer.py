@@ -25,14 +25,26 @@ def importer(_all_, *temp):
             ...     }
             ... )
 
+        Note
+            - you can still use static/normal import e.g. "from .module
+              import example" before "importer()" is called.
+            - You can also use "." e.g. '.one': ('a', 'b', 'c')
+            - for 1 word import name you can use 'module': 'myclass' vs
+              'module': ('myclass',)
+            - All import names must be unique.
+
         Info
             - Inspired by "werkzeug" dynamic importer.
     '''
-    # Automatically get "importer()" callers package name
-    package = sys._getframe(1).f_locals['__package__']
-    # Note
-    #   This weird looking code is a hack job to avoid using "inspect" module
-    #   as it was adding 300-800% slowdown on run-time.
+    try:
+        # Automatically get "importer()" callers package name
+        package = sys._getframe(1).f_locals['__package__']
+        # Note
+        #   This weird looking code is a hack job to avoid using "inspect"
+        #   module as it was adding 300-800% slowdown on run-time.
+    except KeyError:
+        _ = ('"importer()" must be used/called inside "__init__.py" file')
+        raise ImportError(_) from None
 
     # TODO
     if temp:
@@ -42,7 +54,7 @@ def importer(_all_, *temp):
         if _all_ == package and isinstance(temp[0], dict):
             _all_ = temp[0]
         else:
-            _ = f'Arguments you have provided does NOT seem right. \
+            _ = 'Arguments you have provided does NOT seem right. \
             Use help(importer) to see how to use "importer()" function.'
             raise ValueError(_)
 

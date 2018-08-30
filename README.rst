@@ -103,8 +103,8 @@ Example
 
 Note
 ----
-    - you can still use static/normal import e.g: "from .module import example" before "importer()" is called.
-    - You can also use "." e.g: '.one': ('a', 'b', 'c')
+    - you can still use static/normal import e.g. "from .module import example" before "importer()" is called.
+    - You can also use "." e.g. '.one': ('a', 'b', 'c')
     - for 1 word import name you can use 'module': 'myclass' vs 'module': ('myclass',)
     - All import names must be unique.
 
