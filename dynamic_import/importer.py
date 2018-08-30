@@ -26,8 +26,8 @@ def importer(_all_, *temp):
             ... )
 
         Note
-            - you can still use static/normal import e.g. "from .module
-              import example" before "importer()" is called.
+            - you can still use static/normal import
+              e.g. "from .module import example" before "importer()" is called.
             - You can also use "." e.g. '.one': ('a', 'b', 'c')
             - for 1 word import name you can use 'module': 'myclass' vs
               'module': ('myclass',)
@@ -128,7 +128,7 @@ def rearrange(pkg, all):
     for key, value in all.items():
         # Lets convert relative to static import!
         # e.g: '.one' -to-> 'test.one'
-        key = pkg+key if key[0] == '.' else pkg+'.'+key
+        key = f'{pkg}{key}' if key[0] == '.' else f'{pkg}.{key}'
 
         # Lets wrap tuple around str value.
         if isinstance(value, str):
