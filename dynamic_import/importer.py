@@ -1,39 +1,61 @@
 import sys
 from types import ModuleType
 
-__all__ = ('importer',)
+__version__ = '0.9.4'
+__all__ = ('importer', 'rearrange', 'Module')
 
 
-def importer(__package__, __all__):
+def importer(_all_, *temp):
     ''' Dynamic run-time importer and easy to use module import path name.
 
         Type
-            __package__: str
-            __all__: Dict[str, Iterable[str]]
+            _all_: Dict[str, Iterable[str]]
             return: None
 
         Example
             >>> importer(
-            ...     __package__,  # can also use "sample"
             ...     {
-            ...         '.one': ('a', 'b', 'c'),  # from .one import 'a', ...
-            ...         '.two': ('x', 'y', 'z')
+            ...     'one': ('a', 'b', 'c'),  # from .one import a, b, c
+            ...     'two': ('x', 'y', 'z'),  # from .two import x, y, z
+            ...     'local': 'internals',    # from .local import internals
+            ...     'sub': {
+            ...         'page': ('e', 'f', 'g'),  # from .sub.page import e,...
+            ...         'name': 'name',           # from .sub.name import name
+            ...         }
             ...     }
             ... )
 
-        Note
+        Info
             - Inspired by "werkzeug" dynamic importer.
     '''
-    # Originize import module & variable names ready to be used.
-    _all, _reverse = _arrange(__package__, __all__)
+    # Automatically get "importer()" callers package name
+    package = sys._getframe(1).f_locals['__package__']
+    # Note
+    #   This weird looking code is a hack job to avoid using "inspect" module
+    #   as it was adding 300-800% slowdown on run-time.
+
+    # TODO
+    if temp:
+        # Temp fix. User haven't changed their "importer()" argument from
+        # < "0.9.4". Lets account for it for now, will raise DeprecationWarning
+        # in the future.
+        if _all_ == package and isinstance(temp[0], dict):
+            _all_ = temp[0]
+        else:
+            _ = f'Arguments you have provided does NOT seem right. \
+            Use help(importer) to see how to use "importer()" function.'
+            raise ValueError(_)
+
+    # Organize import module & variable names ready to be used.
+    _all, _reverse = rearrange(package, _all_)
 
     # Start new module import handler
-    module = _Module(__package__, _all, _reverse)
+    module = Module(package, _all, _reverse)
 
     # Note
     #   Since "importer()" is located in "__init__.py" file
     #   the package is already created, so lets use that.
-    current_module = sys.modules[__package__]
+    current_module = sys.modules[package]
 
     # Note
     #   - lets keep everything from the current module as is.
@@ -42,14 +64,11 @@ def importer(__package__, __all__):
     module.__dict__.update(current_module.__dict__)
 
     # Lets switch new module with the current module.
-    sys.modules[__package__] = module
+    sys.modules[package] = module
 
 
-# Internally used function & class
-# v------------------------------v
-
-def _arrange(pkg, all):
-    ''' Arrange "all" and produce value to key dict (_reverse)
+def rearrange(pkg, all):
+    ''' Rearrange "all" and produce value to key dict (_reverse)
 
         Type
             pkg: str
@@ -60,39 +79,54 @@ def _arrange(pkg, all):
             >>> _all, _reverse = _arrange(
             ...     'sample',
             ...     {
-            ...         '.one': ('a', 'b', 'c'),  # from .one import a, b, c
-            ...         '.two': ('x', 'y', 'z'),  # from .two import x, y, z
-            ...         '.local': 'o_o',          # from .local import o_o
+            ...         '.one': ('a', 'b', 'c'),
+            ...         '.two': ('x', 'y', 'z'),
+            ...         '.local': 'internals',
+            ...         '.sub': {
+            ...             '.page': ('e', 'f', 'g'),
+            ...             '.name': 'name',
+            ...         },
             ...     }
             ... )
             >>> _all
             {
-                'sample.one': ('a', 'b', 'c'),
-                'sample.two': ('x', 'y', 'z'),
-                'sample.local': ('o_o',)
+                'sample.one': ('a', 'b', 'c')
+                'sample.two': ('x', 'y', 'z')
+                'sample.local': ('internals',)
+                'sample.sub.page': ('e', 'f', 'g')
+                'sample.sub.name': ('name',)
             }
             >>> _reverse
             {
-                'a': 'sample.one',
-                'b': 'sample.one',
-                'c': 'sample.one',
-                'x': 'sample.two',
-                'y': 'sample.two',
-                'z': 'sample.two',
-                'o_o':'sample.local'
+                'a': sample.one
+                'b': sample.one
+                'c': sample.one
+                'x': sample.two
+                'y': sample.two
+                'z': sample.two
+                'internals': sample.local
+                'e': sample.sub.page
+                'f': sample.sub.page
+                'g': sample.sub.page
+                'name': sample.sub.name
             }
     '''
     a = {}  # {'test.one': ('a', 'b', 'c'), ...}
     r = {}  # {'a': 'test.one', ...}
     for key, value in all.items():
+        # Lets convert relative to static import!
+        # e.g: '.one' -to-> 'test.one'
+        key = pkg+key if key[0] == '.' else pkg+'.'+key
+
         # Lets wrap tuple around str value.
         if isinstance(value, str):
             value = (value,)
-
-        # Lets convert relative to static import!
-        # e.g: '.one' -to-> 'test.one'
-        if key[0] == '.':
-            key = pkg + key
+        elif isinstance(value, dict):
+            # Sub-Package - Recursive
+            sub_all, sub_reverse = rearrange(key, value)
+            a.update(sub_all)
+            r.update(sub_reverse)
+            continue
 
         # New __all__ Holder
         a[key] = value
@@ -105,7 +139,7 @@ def _arrange(pkg, all):
     return a, r
 
 
-class _Module(ModuleType):
+class Module(ModuleType):
     # ModuleType = type(sys.modules)
 
     def __init__(self, pkg, _all, _reverse, *args, **kwargs):
@@ -123,7 +157,7 @@ class _Module(ModuleType):
             module = __import__(
                 # e.g: self.___reverse[name]="test.one" and name="a"
                 self.___reverse[name], None, None, [name]
-                # note:
+                # Note
                 #   If there is an error inside "__imort__()" it will raise
                 #   ImportError even if its not related to import as
                 #   sub-error message is suppressed by "__import__()" it seems.
