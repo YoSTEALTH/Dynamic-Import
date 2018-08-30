@@ -4,6 +4,11 @@ Dynamic Import
 Lets you dynamically/lazily import python module on run-time, enables easy to use import path name, saves memory. Also makes managing projects easy by not having to worry about nested folder structure producing long import names.
 
 
+Warning
+-------
+    - "importer()" argument has changed from version "0.9.3" into "0.9.4". No need to manually provide "__package__" name. Will raise DeprecationWarning in future releases.
+
+
 Install, update & uninstall
 ---------------------------
 
@@ -27,25 +32,21 @@ Example
     
     from dynamic_import import importer
 
-    # Static Importer
+    # Static/Normal Import
     from .static import static
-    # Note
-    #   This is to demonstrate that you can still import modules directly
-    #   before "importer()" is called.
 
     # Dynamic Importer
     importer(
-        __package__,
         {
-            '.one': ('a', 'b', 'c'),  # from .one import a, b, c
-            '.two': ('x', 'y', 'z'),  # from .two import x, y, z
-            '.local': 'internals',    # from .local import internals
-            # Note -------^
-            #   Here we are using str vs Iterable[str] type since its only
-            #   1 value. This will also work.
+            'one': ('a', 'b', 'c'),  # from .one import a, b, c
+            'two': ('x', 'y', 'z'),  # from .two import x, y, z
+            'local': 'internals',    # from .local import internals
+            'sub': {
+                'page': ('e', 'f', 'g'),  # from .sub.page import e, f, g
+                'name': 'name',           # from .sub.name import name
+            }
         }
     )
-
 
 ./example/example.py
 
@@ -54,36 +55,58 @@ Example
     # Static Import #1
     # ----------------
     from sample import static
+    # Only "sample" & "sample.static" modules are loaded at this point.
     print(static())
     print()
-    # Note
-    #   Only "sample" & "sample.static" modules are loaded at this point.
 
     # Dynamic Import #1
     # -----------------
     from sample import a, b, c
+    # Now "sample", "sample.direct" & "sample.one" modules are loaded at this point.
     print(a())
     print(b())
     print(c())
     print()
-    # Note
-    #   Now "sample", "sample.direct" & "sample.one" modules are loaded at this point.
 
     # Dynamic Import #2
     # -----------------
     from sample import x, y, z
+    # All "sample", "sample.direct", "sample.one" & "sample.two" modules are loaded.
     print(x())
     print(y())
     print(z())
-    # Note
-    #   All "sample", "sample.direct", "sample.one" & "sample.two" modules are loaded.
+    print()
 
     # Dynamic Import #3
     # -----------------
     from sample import internals
+    # This is to demonstrate you can relatively import one module from another module.
     print(internals())
-    # Note
-    #   This is to demonstrate you can relatively import one module from another module.
+    print()
+
+    # Sub-page Import #1
+    # ------------------
+    from sample import e, f, g
+    # This demonstrates you can use nested sub-dir and use main module to import from.
+    print(e())
+    print(f())
+    print(g())
+    print()
+
+    # Sub-page Import #2
+    # ------------------
+    from sample import name
+    # Another sub-dir example
+    print(name())
+    print()
+
+
+Note
+----
+    - you can still use static/normal import e.g: "from .module import example" before "importer()" is called.
+    - You can also use "." e.g: '.one': ('a', 'b', 'c')
+    - for 1 word import name you can use 'module': 'myclass' vs 'module': ('myclass',)
+    - All import names must be unique.
 
 
 License
@@ -91,8 +114,8 @@ License
 Free, No limit what so ever. `Read more`_
 
 
-TODO
-----
+.. TODO
+.. ----
     - Add multi-dimensional dictionary to module naming convention. Done, local testing.
     - Remove "__package__" attribute from importer(), should be automatic!. Done, local testing.
 
