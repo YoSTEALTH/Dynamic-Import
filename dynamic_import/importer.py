@@ -170,7 +170,7 @@ class Module(ModuleType):
                 # e.g: self.___reverse[name]="test.one" and name="a"
                 self.___reverse[name], None, None, [name]
                 # Note
-                #   If there is an error inside "__imort__()" it will raise
+                #   If there is an error inside "__import__()" it will raise
                 #   ImportError even if its not related to import as
                 #   sub-error message is suppressed by "__import__()" it seems.
             )
