@@ -109,3 +109,5 @@ def test_outside_init():
         importer('example.sample', {'one': ('a', 'b', 'c')})
     except ImportError:
         assert True
+    else:
+        assert False
