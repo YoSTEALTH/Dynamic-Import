@@ -1,4 +1,5 @@
 import sys
+from pytest import raises
 from dynamic_import.importer import importer, rearrange
 
 
@@ -105,9 +106,7 @@ def test_rearrange():
 
 def test_outside_init():
     # 'ImportError: "importer()" must be used/called inside "__init__.py" file'
-    try:
+    with raises(ImportError) as excinfo:
         importer('example.sample', {'one': ('a', 'b', 'c')})
-    except ImportError:
-        assert True
-    else:
-        assert False
+
+    assert str(excinfo.value) == '"importer()" must be used/called inside "__init__.py" file'
