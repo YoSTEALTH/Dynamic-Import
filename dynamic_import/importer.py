@@ -1,7 +1,7 @@
 import sys
 from types import ModuleType
 
-__version__ = '0.9.4'
+__version__ = '0.9.5'
 __all__ = ('importer', 'rearrange', 'Module')
 
 
@@ -166,29 +166,34 @@ class Module(ModuleType):
     def __getattr__(self, name):
         # e.g: 'a' in {'a': 'test.one', ...}
         if name in self.___reverse:
-            # Lets import the file the "name" variable is in.
-            module = __import__(
-                # e.g: self.___reverse[name]="test.one" and name="a"
-                self.___reverse[name], None, None, [name]
+            try:
+                # Lets import the file the "name" variable is in.
+                module = __import__(
+                    # e.g: self.___reverse[name]="test.one" and name="a"
+                    self.___reverse[name], None, None, [name]
+                    # Note
+                    #   If there is an error inside "__import__()" it will raise
+                    #   ImportError even if its not related to import as
+                    #   sub-error message is suppressed by "__import__()" it seems.
+                )
+            except ModuleNotFoundError:
+                # This error is a bit more clear vs normal error message.
+                _ = f'No module named "{self.___reverse[name]}" located while trying to import "{name}"'
+                raise ImportError(_) from None
+            else:
                 # Note
-                #   If there is an error inside "__import__()" it will raise
-                #   ImportError even if its not related to import as
-                #   sub-error message is suppressed by "__import__()" it seems.
-            )
+                #   Lets also assign rest of the instance(s) belonging to
+                #   the same module while we are at it, so we don't have to
+                #   re-import them again!
 
-            # Note
-            #   Lets also assign rest of the instance(s) belonging to
-            #   the same module while we are at it, so we don't have to
-            #   re-import them again!
+                # e.g: 'a' in ['a', 'b', 'c']
+                for attr in self.___all[module.__name__]:
+                    self.__dict__[attr] = module.__dict__[attr]
+                    # ^-> setattr(self, attr, getattr(module, attr))
 
-            # e.g: 'a' in ['a', 'b', 'c']
-            for attr in self.___all[module.__name__]:
-                self.__dict__[attr] = module.__dict__[attr]
-                # ^-> setattr(self, attr, getattr(module, attr))
-
-            # Lets return dynamically imported module
-            return self.__dict__[name]
-            # ^-> return getattr(module, name)
+                # Lets return dynamically imported module
+                return self.__dict__[name]
+                # ^-> return getattr(module, name)
 
         # Stragglers, lets let ModuleType handle it.
         return ModuleType.__getattribute__(self, name)
