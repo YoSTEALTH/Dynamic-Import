@@ -10,6 +10,7 @@ def importer(_all_, *temp):
 
         Type
             _all_: Dict[str, Iterable[str]]
+            temp: Tuple[Dict][0]
             return: None
 
         Example
@@ -126,7 +127,7 @@ def rearrange(pkg, all):
     a = {}  # {'test.one': ('a', 'b', 'c'), ...}
     r = {}  # {'a': 'test.one', ...}
     for key, value in all.items():
-        # Lets convert relative to static import!
+        # Lets convert relative to absolute import!
         # e.g: '.one' -to-> 'test.one'
         key = f'{pkg}{key}' if key[0] == '.' else f'{pkg}.{key}'
 
@@ -138,7 +139,7 @@ def rearrange(pkg, all):
             sub_all, sub_reverse = rearrange(key, value)
             a.update(sub_all)
             r.update(sub_reverse)
-            continue
+            continue  # skip
 
         # New __all__ Holder
         a[key] = value
@@ -183,11 +184,11 @@ class Module(ModuleType):
             # e.g: 'a' in ['a', 'b', 'c']
             for attr in self.___all[module.__name__]:
                 self.__dict__[attr] = module.__dict__[attr]
-                # setattr(self, attr, getattr(module, attr))
+                # ^-> setattr(self, attr, getattr(module, attr))
 
             # Lets return dynamically imported module
             return self.__dict__[name]
-            # return getattr(module, name)
+            # ^-> return getattr(module, name)
 
         # Stragglers, lets let ModuleType handle it.
         return ModuleType.__getattribute__(self, name)
