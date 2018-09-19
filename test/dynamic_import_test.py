@@ -105,8 +105,8 @@ def test_rearrange():
 
 
 def test_outside_init():
-    # 'ImportError: "importer()" must be used/called inside "__init__.py" file'
-    with raises(ImportError) as excinfo:
+    with raises(
+        ImportError,
+        message='"importer()" must be used/called inside "__init__.py" file'
+    ):
         importer('example.sample', {'one': ('a', 'b', 'c')})
-
-    assert str(excinfo.value) == '"importer()" must be used/called inside "__init__.py" file'
