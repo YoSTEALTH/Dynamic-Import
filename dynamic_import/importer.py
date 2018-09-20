@@ -10,7 +10,7 @@ def importer(_all_, *temp):
 
         Type
             _all_: Dict[str, Union[str, Iterable[str], Dict[...]]]
-            temp: Tuple[Dict][0]
+            temp: Tuple[Dict[str, any]][0]
             return: None
 
         Example
@@ -86,7 +86,10 @@ def rearrange(pkg, all):
         Type
             pkg: str
             all: str, Iterable[str]
-            return: Tuple[Dict[str, str], Dict[str, str]]
+            return: Tuple[
+                a: Dict[str, str],
+                r: Dict[str, str]
+            ]
 
         Example
             >>> _all, _reverse = _arrange(
@@ -172,13 +175,15 @@ class Module(ModuleType):
                     # e.g: self.___reverse[name]="test.one" and name="a"
                     self.___reverse[name], None, None, [name]
                     # Note
-                    #   If there is an error inside "__import__()" it will raise
-                    #   ImportError even if its not related to import as
-                    #   sub-error message is suppressed by "__import__()" it seems.
+                    #   If there is an error inside "__import__()" it will
+                    #   raise ImportError even if its not related to import as
+                    #   sub-error message is suppressed by "__import__()"
+                    #   it seems.
                 )
             except ModuleNotFoundError:
                 # This error is a bit more clear vs normal error message.
-                _ = f'No module named "{self.___reverse[name]}" located while trying to import "{name}"'
+                _ = (f'No module named "{self.___reverse[name]}" located '
+                     f'while trying to import "{name}"')
                 raise ImportError(_) from None
             else:
                 # Note
