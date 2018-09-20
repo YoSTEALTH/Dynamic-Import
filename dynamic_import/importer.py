@@ -44,7 +44,7 @@ def importer(_all_, *temp):
         #   This weird looking code is a hack job to avoid using "inspect"
         #   module as it was adding 300-800% slowdown on run-time.
     except KeyError:
-        _ = ('"importer()" must be called from within "__init__.py"')
+        _ = '"importer()" must be called from within "__init__.py"'
         raise ImportError(_) from None
 
     # TODO

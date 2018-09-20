@@ -105,8 +105,9 @@ def test_rearrange():
 
 
 def test_outside_init():
-    with raises(
-        ImportError,
-        message='"importer()" must be used/called inside "__init__.py" file'
-    ):
+    with raises(ImportError) as e:
         importer('example.sample', {'one': ('a', 'b', 'c')})
+    # Note: Don't use `raises(match)` argument as regex flaws with "()".
+    assert (
+        str(e.value) == '"importer()" must be called from within "__init__.py"'
+    )
