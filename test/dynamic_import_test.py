@@ -1,3 +1,4 @@
+import re
 import sys
 from pytest import raises
 from dynamic_import.importer import importer, rearrange
@@ -105,9 +106,8 @@ def test_rearrange():
 
 
 def test_outside_init():
-    with raises(ImportError) as e:
+    with raises(ImportError, match=re.escape(
+        # Need to use re.escape as "()" does NOT work well with regex.
+        '"importer()" must be called from within "__init__.py"'
+    )):
         importer('example.sample', {'one': ('a', 'b', 'c')})
-    # Note: Don't use `raises(match)` argument as regex flaws with "()".
-    assert (
-        str(e.value) == '"importer()" must be called from within "__init__.py"'
-    )
