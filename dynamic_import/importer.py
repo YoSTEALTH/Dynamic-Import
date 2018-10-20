@@ -39,7 +39,8 @@ def importer(_all_, *temp):
     '''
     try:
         # Automatically get "importer()" callers package name
-        package = sys._getframe(1).f_locals['__package__']
+        # package = sys._getframe(1).f_locals['__package__']
+        package = sys._getframe(1).f_globals['__package__']
         # Note
         #   This weird looking code is a hack job to avoid using "inspect"
         #   module as it was adding 300-800% slowdown on run-time.
