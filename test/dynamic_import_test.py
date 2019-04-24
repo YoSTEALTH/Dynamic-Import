@@ -1,7 +1,11 @@
 import re
 import sys
 from pytest import raises
-from dynamic_import.importer import importer, rearrange
+from dynamic_import.importer import importer
+from dynamic_import.rearrange import rearrange
+
+# Note
+#   - Call test files using "python3 -m pytest test"
 
 
 def test_static_import():
@@ -11,6 +15,7 @@ def test_static_import():
     assert 'example.sample.one' not in sys.modules
     assert 'example.sample.two' not in sys.modules
     assert 'example.sample.local' not in sys.modules
+    remove_imported_module('example')
 
 
 def test_dynamic_one():
@@ -22,6 +27,7 @@ def test_dynamic_one():
     assert 'example.sample.one' in sys.modules
     assert 'example.sample.two' not in sys.modules
     assert 'example.sample.local' not in sys.modules
+    remove_imported_module('example')
 
 
 def test_dynamic_two():
@@ -30,9 +36,10 @@ def test_dynamic_two():
     assert y() == 'calling y()'
     assert z() == 'calling z()'
     assert 'example.sample.static' in sys.modules
-    assert 'example.sample.one' in sys.modules
+    assert 'example.sample.one' not in sys.modules
     assert 'example.sample.two' in sys.modules
     assert 'example.sample.local' not in sys.modules
+    remove_imported_module('example')
 
 
 def test_dynamic_local():
@@ -42,6 +49,7 @@ def test_dynamic_local():
     assert 'example.sample.one' in sys.modules
     assert 'example.sample.two' in sys.modules
     assert 'example.sample.local' in sys.modules
+    remove_imported_module('example')
 
 
 def test_sub_page():
@@ -49,15 +57,17 @@ def test_sub_page():
     assert e() == 'calling e()'
     assert f() == 'calling f()'
     assert g() == 'calling g()'
+    remove_imported_module('example')
 
 
 def test_sub_name():
     from example.sample import name
     assert name() == 'calling name()'
+    remove_imported_module('example')
 
 
 def test_rearrange():
-    __all__ = {
+    all = {
         'one': ('a', 'b', 'c'),  # from .one import a, b, c
         'two': ('x', 'y', 'z'),  # from .two import x, y, z
         'local': 'internals',    # from .local import internals
@@ -86,12 +96,12 @@ def test_rearrange():
         'g': 'sample.sub.page',
         'name': 'sample.sub.name'
     }
-    _all, _reverse = rearrange('sample', __all__)
+    _all, reverse = rearrange('sample', all)
     assert _all == find_all
-    assert _reverse == find_reverse
+    assert reverse == find_reverse
 
     # Modules with "."
-    __all__ = {
+    all = {
         '.one': ('a', 'b', 'c'),  # from .one import a, b, c
         '.two': ('x', 'y', 'z'),  # from .two import x, y, z
         '.local': 'internals',    # from .local import internals
@@ -100,9 +110,9 @@ def test_rearrange():
             '.name': 'name',           # from .sub.name import name
         }
     }
-    _all, _reverse = rearrange('sample', __all__)
+    _all, reverse = rearrange('sample', all)
     assert _all == find_all
-    assert _reverse == find_reverse
+    assert reverse == find_reverse
 
 
 def test_outside_init():
@@ -110,4 +120,15 @@ def test_outside_init():
         # Need to use re.escape as "()" does NOT work well with regex.
         '"importer()" must be called from within "__init__.py"'
     )):
+        importer({'one': ('a', 'b', 'c')})
         importer('example.sample', {'one': ('a', 'b', 'c')})
+
+
+def remove_imported_module(name):
+    ''' Remove imported module so new import can be tested properly.
+    '''
+    withdot = f'{name}.'
+    delete_modules = [i for i in sys.modules if i == name or i.startswith(withdot)]
+
+    for module in delete_modules:
+        del sys.modules[module]
