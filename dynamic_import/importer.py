@@ -1,16 +1,16 @@
 import sys
-from types import ModuleType
+from .rearrange import rearrange
+from .module import Module
 
-__version__ = '0.9.5'
-__all__ = ('importer', 'rearrange', 'Module')
+__all__ = ('importer',)
 
 
-def importer(_all_, *temp):
+def importer(all, *temp):
     ''' Dynamic run-time importer and easy to use module import path name.
 
         Type
-            _all_: Dict[str, Union[str, Iterable[str], Dict[...]]]
-            temp: Tuple[Dict[str, any]][0]
+            all:    Dict[str, Union[str, Iterable[str], Dict[...]]]
+            temp:   Tuple[any]  # This argument will be removed starting v1.0
             return: None
 
         Example
@@ -39,7 +39,6 @@ def importer(_all_, *temp):
     '''
     try:
         # Automatically get "importer()" callers package name
-        # package = sys._getframe(1).f_locals['__package__']
         package = sys._getframe(1).f_globals['__package__']
         # Note
         #   This weird looking code is a hack job to avoid using "inspect"
@@ -47,24 +46,22 @@ def importer(_all_, *temp):
     except KeyError:
         _ = '"importer()" must be called from within "__init__.py"'
         raise ImportError(_) from None
+    else:
+        if not package:
+            _ = '"importer()" must be called from within "__init__.py"'
+            raise ImportError(_)
 
-    # TODO
     if temp:
-        # Temp fix. User haven't changed their "importer()" argument from
-        # < "0.9.4". Lets account for it for now, will raise DeprecationWarning
-        # in the future.
-        if _all_ == package and isinstance(temp[0], dict):
-            _all_ = temp[0]
-        else:
-            _ = ('Arguments you have provided does NOT seem right. '
-                 'Use help(importer) to see how to use "importer()" function.')
-            raise ValueError(_)
+        _ = 'No need to manually provide "__package__" into importer()'
+        raise DeprecationWarning(_)
+        # TODO
+        #     - Starting from 1.0 "temp" argument will be removed.
 
     # Organize import module & variable names ready to be used.
-    _all, _reverse = rearrange(package, _all_)
+    _all, reverse = rearrange(package, all)
 
     # Start new module import handler
-    module = Module(package, _all, _reverse)
+    module = Module(package, _all, reverse)
 
     # Note
     #   Since "importer()" is located in "__init__.py" file
@@ -79,133 +76,3 @@ def importer(_all_, *temp):
 
     # Lets switch new module with the current module.
     sys.modules[package] = module
-
-
-def rearrange(pkg, all):
-    ''' Rearrange "all" and produce value to key dict (_reverse)
-
-        Type
-            pkg: str
-            all: str, Iterable[str]
-            return: Tuple[
-                a: Dict[str, str],
-                r: Dict[str, str]
-            ]
-
-        Example
-            >>> _all, _reverse = _arrange(
-            ...     'sample',
-            ...     {
-            ...         '.one': ('a', 'b', 'c'),
-            ...         '.two': ('x', 'y', 'z'),
-            ...         '.local': 'internals',
-            ...         '.sub': {
-            ...             '.page': ('e', 'f', 'g'),
-            ...             '.name': 'name',
-            ...         },
-            ...     }
-            ... )
-            >>> _all
-            {
-                'sample.one': ('a', 'b', 'c')
-                'sample.two': ('x', 'y', 'z')
-                'sample.local': ('internals',)
-                'sample.sub.page': ('e', 'f', 'g')
-                'sample.sub.name': ('name',)
-            }
-            >>> _reverse
-            {
-                'a': sample.one
-                'b': sample.one
-                'c': sample.one
-                'x': sample.two
-                'y': sample.two
-                'z': sample.two
-                'internals': sample.local
-                'e': sample.sub.page
-                'f': sample.sub.page
-                'g': sample.sub.page
-                'name': sample.sub.name
-            }
-    '''
-    a = {}  # {'test.one': ('a', 'b', 'c'), ...}
-    r = {}  # {'a': 'test.one', ...}
-    for key, value in all.items():
-        # Lets convert relative to absolute import!
-        # e.g: '.one' -to-> 'test.one'
-        key = f'{pkg}{key}' if key[0] == '.' else f'{pkg}.{key}'
-
-        # Lets wrap tuple around str value.
-        if isinstance(value, str):
-            value = (value,)
-        elif isinstance(value, dict):
-            # Sub-Package - Recursive
-            sub_all, sub_reverse = rearrange(key, value)
-            a.update(sub_all)
-            r.update(sub_reverse)
-            continue  # skip
-
-        # New __all__ Holder
-        a[key] = value
-
-        # Lest reverse assign value to key
-        # e.g: {'test.one': ('a', 'b', 'c')} -to-> {'a: 'test.one', ...}
-        for attr in value:
-            r[attr] = key
-
-    return a, r
-
-
-class Module(ModuleType):
-    # ModuleType = type(sys.modules)
-
-    def __init__(self, pkg, _all, _reverse, *args, **kwargs):
-        # Assign
-        self.___all = _all  # {'test.one': ('a', 'b', 'c'), ...}
-        self.___reverse = _reverse  # {'a': 'test.one', ...}
-
-        # Run original ModuleType.__init__
-        super().__init__(pkg, None, *args, **kwargs)
-
-    def __getattr__(self, name):
-        # e.g: 'a' in {'a': 'test.one', ...}
-        if name in self.___reverse:
-            try:
-                # Lets import the file the "name" variable is in.
-                module = __import__(
-                    # e.g: self.___reverse[name]="test.one" and name="a"
-                    self.___reverse[name], None, None, [name]
-                    # Note
-                    #   If there is an error inside "__import__()" it will
-                    #   raise ImportError even if its not related to import as
-                    #   sub-error message is suppressed by "__import__()"
-                    #   it seems.
-                )
-            except ModuleNotFoundError:
-                # This error is a bit more clear vs normal error message.
-                _ = (f'No module named "{self.___reverse[name]}" located '
-                     f'while trying to import "{name}"')
-                raise ImportError(_) from None
-            else:
-                # Note
-                #   Lets also assign rest of the instance(s) belonging to
-                #   the same module while we are at it, so we don't have to
-                #   re-import them again!
-
-                # e.g: 'a' in ['a', 'b', 'c']
-                for attr in self.___all[module.__name__]:
-                    self.__dict__[attr] = module.__dict__[attr]
-                    # ^-> setattr(self, attr, getattr(module, attr))
-
-                # Lets return dynamically imported module
-                return self.__dict__[name]
-                # ^-> return getattr(module, name)
-
-        # Stragglers, lets let ModuleType handle it.
-        return ModuleType.__getattribute__(self, name)
-
-    def __dir__(self):
-        # Lets ignore internally used instances we created.
-        ignore = {'___all', '___reverse'}
-        # Nice and clean "dir(test)" printout.
-        return [attr for attr in self.__dict__ if attr not in ignore]

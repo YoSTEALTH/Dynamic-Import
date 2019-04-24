@@ -1,8 +1,7 @@
-# flake8: noqa
 try:
     from dynamic_import import importer
 except ImportError:
-    # Development Module location
+    # Development testing module location
     import sys
     import os.path
     sys.path.insert(
@@ -13,9 +12,10 @@ except ImportError:
 
 
 # Static/Normal Import
-from .static import static
-# This is to demonstrate that you can still import modules directly
-# before "importer()" is called.
+from .static import static  # noqa
+# Note
+#   This is to demonstrate that you can still import modules directly
+#   before "importer()" is called.
 
 # Dynamic Importer
 importer(
