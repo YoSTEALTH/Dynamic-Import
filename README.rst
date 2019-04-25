@@ -6,7 +6,7 @@ Lets you dynamically/lazily import python module on run-time, enables easy to us
 
 Warning
 -------
-`importer()` argument was changed in version "0.9.4". No need to manually provide `__package__` name. Will raise DeprecationWarning in future releases.
+``importer()`` argument was changed in version "0.9.4". No need to manually provide ``__package__`` name. Will raise DeprecationWarning in future releases.
 
 
 Install, update & uninstall
