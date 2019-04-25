@@ -5,7 +5,7 @@ from dynamic_import.importer import importer
 from dynamic_import.rearrange import rearrange
 
 # Note
-#   - Call test files using "python3 -m pytest test"
+#   - Call test files using ```python3 -m pytest test```
 
 
 def test_static_import():
@@ -100,7 +100,7 @@ def test_rearrange():
     assert _all == find_all
     assert reverse == find_reverse
 
-    # Modules with "."
+    # Modules with `.`
     all = {
         '.one': ('a', 'b', 'c'),  # from .one import a, b, c
         '.two': ('x', 'y', 'z'),  # from .two import x, y, z
@@ -116,7 +116,7 @@ def test_rearrange():
 
 
 def test_outside_init():
-    # Need to use re.escape as "()" does NOT work well with regex.
+    # Need to use `re.escape` as "()" does NOT work well with regex.
     message = '`importer()` must be called from within `__init__.py`'
     with raises(ImportError, match=re.escape(message)):
         importer({'one': ('a', 'b', 'c')})
