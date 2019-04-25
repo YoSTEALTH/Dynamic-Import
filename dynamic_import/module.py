@@ -13,7 +13,7 @@ class Module(ModuleType):  # ModuleType = type(sys.modules)
                 reverse:    Dict[str, str]
                 args:       Tuple[any]
                 kwargs:     Dict[str, any]
-                return: None
+                return:     None
         '''
         # Mask as special attribute to avoid user overwriting attribute name with module name
         self.__importer_all__ = all  # {'test.one': ('a', 'b', 'c'), ...}
