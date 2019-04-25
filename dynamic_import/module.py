@@ -19,7 +19,7 @@ class Module(ModuleType):  # ModuleType = type(sys.modules)
         self.__importer_all__ = all  # {'test.one': ('a', 'b', 'c'), ...}
         self.__importer_reverse__ = reverse  # {'a': 'test.one', ...}
 
-        # Run original ModuleType.__init__
+        # Run original `ModuleType.__init__()`
         super().__init__(pkg, None, *args, **kwargs)
 
     def __getattr__(self, name):
@@ -31,14 +31,14 @@ class Module(ModuleType):  # ModuleType = type(sys.modules)
         # e.g: 'a' in {'a': 'test.one', ...}
         if name in self.__importer_reverse__:
             try:
-                # Lets import the file the "name" variable is in.
+                # Lets import the file the `name` variable is in.
                 module = __import__(
-                    # e.g: self.___reverse[name]="test.one" and name="a"
+                    # e.g: self.__importer_reverse__['test.one'], None, None, ['a']
                     self.__importer_reverse__[name], None, None, [name]
                     # Note
-                    #   If there is an error inside "__import__()" it will
+                    #   If there is an error inside `__import__()` it will
                     #   raise ImportError even if its not related to import as
-                    #   sub-error message is suppressed by "__import__()"
+                    #   sub-error message is suppressed by `__import__()`
                     #   it seems.
                 )
             except ModuleNotFoundError:
@@ -65,5 +65,5 @@ class Module(ModuleType):  # ModuleType = type(sys.modules)
     def __dir__(self):
         # Lets ignore internally used instances we created.
         ignore = {'__importer_all__', '__importer_reverse__'}
-        # Nice and clean "dir(test)" printout.
+        # Nice and clean `dir(test)` printout.
         return [attr for attr in self.__dict__ if attr not in ignore]

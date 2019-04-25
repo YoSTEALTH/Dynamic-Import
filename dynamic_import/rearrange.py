@@ -2,7 +2,7 @@ __all__ = ('rearrange',)
 
 
 def rearrange(pkg, all):
-    ''' Rearrange "all" and produce value to key dict (reverse)
+    ''' Rearrange `all` and produce value to key dict
 
         Type
             pkg:    str
@@ -49,7 +49,7 @@ def rearrange(pkg, all):
     reverse = {}  # {'a': 'test.one', ...}
     for key, value in all.items():
         # Lets convert relative to absolute import!
-        # e.g: '.one' -to-> 'test.one'
+        # e.g: '.one' to 'test.one'
         key = f'{pkg}{key}' if key[0] == '.' else f'{pkg}.{key}'
 
         # Lets wrap tuple around str value.
@@ -62,11 +62,11 @@ def rearrange(pkg, all):
             reverse.update(sub_reverse)
             continue  # skip
 
-        # New "__all__" holder
+        # New `__all__` holder
         _all[key] = value
 
         # Lest reverse assign value to key
-        # e.g: {'test.one': ('a', 'b', 'c')} -to-> {'a: 'test.one', ...}
+        # e.g: ```{'test.one': ('a', 'b', 'c')}``` to ```{'a: 'test.one', ...}```
         for attr in value:
             reverse[attr] = key
 

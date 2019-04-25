@@ -117,7 +117,7 @@ def test_rearrange():
 
 def test_outside_init():
     # Need to use re.escape as "()" does NOT work well with regex.
-    message = '"importer()" must be called from within "__init__.py"'
+    message = '`importer()` must be called from within `__init__.py`'
     with raises(ImportError, match=re.escape(message)):
         importer({'one': ('a', 'b', 'c')})
         importer('example.sample', {'one': ('a', 'b', 'c')})
