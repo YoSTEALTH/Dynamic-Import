@@ -55,14 +55,14 @@ Example
     # Static Import #1
     # ----------------
     from sample import static
-    # Only `sample` & `sample.static` modules are loaded at this point.
+    # Only "sample" & "sample.static" modules are loaded at this point.
     print(static())
     print()
 
     # Dynamic Import #1
     # -----------------
     from sample import a, b, c
-    # Now `sample`, `sample.direct` & `sample.one` modules are loaded at this point.
+    # Now "sample", "sample.static" & "sample.one" modules are loaded at this point.
     print(a())
     print(b())
     print(c())
@@ -71,7 +71,7 @@ Example
     # Dynamic Import #2
     # -----------------
     from sample import x, y, z
-    # All `sample`, `sample.direct`, `sample.one` & `sample.two` modules are loaded.
+    # All "sample", "sample.static", "sample.one" & "sample.two" modules are loaded.
     print(x())
     print(y())
     print(z())
