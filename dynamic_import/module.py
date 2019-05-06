@@ -54,16 +54,18 @@ class Module(ModuleType):  # ModuleType = type(sys.modules)
 
                 # e.g: 'a' in ['a', 'b', 'c']
                 for attr in self.__importer_all__[module.__name__]:
-                    self.__dict__[attr] = module.__dict__[attr]
+                    # self.__dict__[attr] = module.__dict__[attr]
+                    setattr(self, attr, getattr(module, attr))
 
                 # Lets return dynamically imported module
-                return self.__dict__[name]
+                # return self.__dict__[name]
+                return getattr(self, name)
 
         # Stragglers, lets let ModuleType handle it.
         return ModuleType.__getattribute__(self, name)
 
-    def __dir__(self):
-        # Lets ignore internally used instances we created.
-        ignore = {'__importer_all__', '__importer_reverse__'}
-        # Nice and clean `dir(test)` printout.
-        return [attr for attr in self.__dict__ if attr not in ignore]
+    # def __dir__(self):
+    #     # Lets ignore internally used instances we created.
+    #     ignore = {'__importer_all__', '__importer_reverse__'}
+    #     # Nice and clean `dir(test)` printout.
+    #     return [attr for attr in self.__dict__ if attr not in ignore]
