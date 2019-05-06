@@ -6,7 +6,7 @@ with open('README.rst', 'r') as file:
 setup(
     name='dynamic_import',
     author='STEALTH',
-    version='0.9.6',
+    version='0.9.7',
     author_email='35307184+YoSTEALTH@users.noreply.github.com',
     description="Dynamically/Lazily import python module on run-time. \
     Also enables easy to use import path name.",
