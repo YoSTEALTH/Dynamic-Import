@@ -74,15 +74,15 @@ def test_rearrange():
         'sub': {
             'page': ('e', 'f', 'g'),  # from .sub.page import e, f, g
             'name': 'name',           # from .sub.name import name
-        },
-    }
+            },
+        }
     find_all = {
         'sample.one': ('a', 'b', 'c'),
         'sample.two': ('x', 'y', 'z'),
         'sample.local': ('internals',),
         'sample.sub.page': ('e', 'f', 'g'),
         'sample.sub.name': ('name',)
-    }
+        }
     find_reverse = {
         'a': 'sample.one',
         'b': 'sample.one',
@@ -95,7 +95,7 @@ def test_rearrange():
         'f': 'sample.sub.page',
         'g': 'sample.sub.page',
         'name': 'sample.sub.name'
-    }
+        }
     _all, reverse = rearrange('sample', all)
     assert _all == find_all
     assert reverse == find_reverse
@@ -108,8 +108,8 @@ def test_rearrange():
         '.sub': {
             '.page': ('e', 'f', 'g'),  # from .sub.page import e, f, g
             '.name': 'name',           # from .sub.name import name
+            }
         }
-    }
     _all, reverse = rearrange('sample', all)
     assert _all == find_all
     assert reverse == find_reverse
