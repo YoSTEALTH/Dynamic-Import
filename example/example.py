@@ -1,4 +1,6 @@
 # flake8: noqa
+# Note
+#   - Call example using `python3 example.py` or `python3 -m example`
 
 # Static Import #1
 # ----------------
@@ -6,6 +8,7 @@ from sample import static
 # Only "sample" & "sample.static" modules are loaded at this point.
 print(static())
 print()
+
 
 # Dynamic Import #1
 # -----------------
