@@ -5,7 +5,7 @@ from dynamic_import.importer import importer
 from dynamic_import.rearrange import rearrange
 
 # Note
-#   - Call test files using ```python3 -m pytest test```
+#   - Call test files using `python3 -m pytest test`
 
 
 def test_static_import():
