@@ -116,7 +116,7 @@ Free, No limit what so ever. `Read more`_
 
 TODO
 ----
-    - Raise warning if conflicting module.identifier name is found (currently old if overridden)
+    - Raise warning if conflicting module.identifier name is found (currently old is overridden)
 
 .. _pip: https://pip.pypa.io/en/stable/quickstart/
 .. _Read more: https://github.com/YoSTEALTH/Dynamic-Import/blob/master/LICENSE.txt
