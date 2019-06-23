@@ -114,10 +114,9 @@ License
 Free, No limit what so ever. `Read more`_
 
 
-.. TODO
-.. ----
-    - Add multi-dimensional dictionary to module naming convention. Done, local testing.
-    - Remove "__package__" attribute from importer(), should be automatic!. Done, local testing.
+TODO
+----
+    - Raise warning if conflicting module.identifier name is found (currently old if overridden)
 
 .. _pip: https://pip.pypa.io/en/stable/quickstart/
 .. _Read more: https://github.com/YoSTEALTH/Dynamic-Import/blob/master/LICENSE.txt
