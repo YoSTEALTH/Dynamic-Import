@@ -44,16 +44,16 @@ def importer(all, *temp):
         #   This weird looking code is a hack job to avoid using `inspect`
         #   module as it was adding 300-800% slowdown on run-time.
     except KeyError:
-        _ = '`importer()` must be called from within `__init__.py`'
-        raise ImportError(_) from None
+        _ = ImportError('`importer()` must be called from within `__init__.py`')
+        raise _ from None
     else:
         if not package:
-            _ = '`importer()` must be called from within `__init__.py`'
-            raise ImportError(_)
+            _ = ImportError('`importer()` must be called from within `__init__.py`')
+            raise _
 
     if temp:
-        _ = 'No need to manually provide `__package__` into `importer()`'
-        raise DeprecationWarning(_)
+        _ = DeprecationWarning('No need to manually provide `__package__` into `importer()`')
+        raise _
         # TODO
         #     - Starting from 1.0 `temp` argument will be removed.
 
