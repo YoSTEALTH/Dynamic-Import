@@ -43,9 +43,9 @@ class Module(ModuleType):  # ModuleType = type(sys.modules)
                 )
             except ModuleNotFoundError:
                 # This error is a bit more clear vs normal error message.
-                _ = (f'No module named {self.__importer_reverse__[name]!r} located '
-                     f'while trying to import {name!r}')
-                raise ImportError(_) from None
+                _ = ImportError(f'No module named {self.__importer_reverse__[name]!r} located '
+                                f'while trying to import {name!r}')
+                raise _ from None
             else:
                 # Note
                 #   Lets also assign rest of the instance(s) belonging to
