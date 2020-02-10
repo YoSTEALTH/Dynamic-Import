@@ -3,10 +3,6 @@ Dynamic Import
 
 Lets you dynamically/lazily import python module on run-time, enables easy to use import path name, saves memory. Also makes managing projects easy by not having to worry about nested folder structure producing long import names.
 
-.. Warning
-.. -------
-.. ``importer()`` argument was changed in version "0.9.4". No need to manually provide ``__package__`` name. Will raise DeprecationWarning in future releases.
-
 
 Install, update & uninstall
 ---------------------------
