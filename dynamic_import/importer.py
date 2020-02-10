@@ -5,12 +5,11 @@ from .module import Module
 __all__ = ('importer',)
 
 
-def importer(all, *temp):
+def importer(all):
     ''' Dynamic run-time importer and easy to use module import path name.
 
         Type
             all:    Dict[str, Union[str, Iterable[str], Dict[...]]]
-            temp:   Tuple[any]  # note: This argument will be removed starting v1.0
             return: None
 
         Example
@@ -28,10 +27,10 @@ def importer(all, *temp):
 
         Note
             - you can still use static/normal import
-              e.g. ```from .module import example``` before `importer()` is called.
-            - You can also use `.` e.g. ```'.one': ('a', 'b', 'c')```
-            - for 1 word import name you can use ```'module': 'myclass'``` vs
-              ```'module': ('myclass',)```
+              e.g. `from .module import example` before `importer()` is called.
+            - You can also use `.` e.g. `'.one': ('a', 'b', 'c')`
+            - for 1 word import name you can use `'module': 'myclass'` vs
+              `'module': ('myclass',)`
             - All import names must be unique.
 
         Info
@@ -50,12 +49,6 @@ def importer(all, *temp):
         if not package:
             _ = ImportError('`importer()` must be called from within `__init__.py`')
             raise _
-
-    if temp:
-        _ = DeprecationWarning('No need to manually provide `__package__` into `importer()`')
-        raise _
-        # TODO
-        #     - Starting from 1.0 `temp` argument will be removed.
 
     # Organize import module & variable names ready to be used.
     _all, reverse = rearrange(package, all)
