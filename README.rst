@@ -2,11 +2,9 @@ Dynamic Import
 ==============
 
 Lets you dynamically/lazily import python module on run-time, enables easy to use import path name, saves memory. Also makes managing projects easy by not having to worry about nested folder structure producing long import names.
-
-
-Warning
--------
-```importer()``` argument was changed in version "0.9.4". No need to manually provide ```__package__``` name. Will raise DeprecationWarning in future releases.
+.. Warning
+.. -------
+.. ``importer()`` argument was changed in version "0.9.4". No need to manually provide ``__package__`` name. Will raise DeprecationWarning in future releases.
 
 
 Install, update & uninstall
@@ -103,9 +101,9 @@ Example
 
 Note
 ----
-    - you can still use static/normal import e.g. ```from .module import example``` before `importer()` is called.
-    - You can also use `.` e.g. ```'.one': ('a', 'b', 'c')```
-    - for 1 word import name you can use ```'module': 'myclass'``` vs ```'module': ('myclass',)```
+    - you can still use static/normal import e.g. ``from .module import example`` before ``importer()`` is called.
+    - You can also use ``.`` e.g. ``'.one': ('a', 'b', 'c')``
+    - for 1 word import name you can use ``'module': 'myclass'`` vs ``'module': ('myclass',)``
     - All import names must be unique.
 
 
