@@ -106,7 +106,7 @@ Note
 
 License
 -------
-Free, No limit what so ever. `Read more`_
+Free, Public Domain (CC0). `Read more`_
 
 
 TODO
