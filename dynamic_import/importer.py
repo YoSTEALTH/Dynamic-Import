@@ -1,71 +1,96 @@
-import sys
-from .rearrange import rearrange
+from os import remove
+from sys import _getframe, modules
+from os.path import exists
+from functools import cache
 from .module import Module
+from .check import importer_called, exclude_directory
+from .cache import pkg_cache_path, create_cache_dir, dump_cache, load_cache
+from .prep import prep_package
 
-__all__ = ('importer',)
+
+__all__ = 'importer',
+ERROR_MSG = '`importer()` must be called from within `__init__.py`'
 
 
-def importer(all):
-    ''' Dynamic run-time importer and easy to use module import path name.
+@cache
+def importer(*, cache=True, recursive=True, exclude=None, exclude_dir=None):
+    ''' Automatically import modules dynamically.
 
         Type
-            all:    Dict[str, Union[str, Iterable[str], Dict[...]]]
-            return: None
+            cache:       bool
+            recursive:   bool
+            exclude_dir: Union[Tuple[str], str, None]
+            return:      None
 
         Example
-            >>> importer(
-            ...     {
-            ...     'one': ('a', 'b', 'c'),  # from .one import a, b, c
-            ...     'two': ('x', 'y', 'z'),  # from .two import x, y, z
-            ...     'local': 'internals',    # from .local import internals
-            ...     'sub': {
-            ...         'page': ('e', 'f', 'g'),  # from .sub.page import e,...
-            ...         'name': 'name',           # from .sub.name import name
-            ...         }
-            ...     }
-            ... )
+            # /pkg/__init__.py
+            >>> from importer import importer
+            ...
+            >>> importer()
 
-        Note
-            - you can still use static/normal import
-              e.g. `from .module import example` before `importer()` is called.
-            - You can also use `.` e.g. `'.one': ('a', 'b', 'c')`
-            - for 1 word import name you can use `'module': 'myclass'` vs
-              `'module': ('myclass',)`
-            - All import names must be unique.
+            # to disable cache (for temporary use only!)
+            >>> importer(cache=False)
 
-        Info
-            - Inspired by "werkzeug" dynamic importer.
+            # prevent scanning sub-directories
+            >>> importer(recursive=False)
+
+            # exclude sub-directory
+            >>> importer(exclude=['/path/pkg/sub-dir', ...])
+
+        Note:
+            - `importer()` on first run will scan all the `.py` files for `__all__` or variables to later import them
+               dynamically.
+            - for production `importer(cache)` must be set to default `True` as cache is what makes the `importer()`
+              fast and dynamic.
     '''
+    caller = _getframe(1).f_globals  # get info of where `importer()` is being called from
+    # note: avoiding using `inspect` module as it was adding 300-800% slowdown on run-time
     try:
-        # Automatically get `importer()` callers package name
-        package = sys._getframe(1).f_globals['__package__']
-        # Note
-        #   This weird looking code is a hack job to avoid using `inspect`
-        #   module as it was adding 300-800% slowdown on run-time.
+        package = caller['__package__']
+        pkg_path = caller['__file__']
     except KeyError:
-        _ = ImportError('`importer()` must be called from within `__init__.py`')
-        raise _ from None
+        raise ImportError(ERROR_MSG) from None
+
+    if not package or not pkg_path.endswith('/__init__.py'):
+        raise ImportError(ERROR_MSG)
+
+    # check if `importer()` was previously called.
+    importer_called(pkg_path)
+
+    # exclude sub directories
+    if recursive and exclude_dir:
+        exclude_paths = exclude_directory(exclude_dir, pkg_path)
+        # TODO: don't think this is accounted for while cached.
     else:
-        if not package:
-            _ = ImportError('`importer()` must be called from within `__init__.py`')
-            raise _
+        exclude_paths = []
 
-    # Organize import module & variable names ready to be used.
-    _all, reverse = rearrange(package, all)
+    cache_path = pkg_cache_path(pkg_path, 'importer')
 
-    # Start new module import handler
-    module = Module(package, _all, reverse)
+    if cache:
+        while True:
+            if exists(cache_path):
+                if info := load_cache(cache_path, recursive, exclude_paths):
+                    break
+                else:
+                    remove(cache_path)
+                    continue
+            else:
+                try:
+                    info, dir_mtime = prep_package(pkg_path, recursive)
+                    create_cache_dir(cache_path)
+                    dump_cache(cache_path, info, recursive, exclude_paths, dir_mtime)
+                    break
+                except Exception as e:
+                    if exists(cache_path):
+                        remove(cache_path)
+                    raise e from None
+    else:
+        if exists(cache_path):
+            remove(cache_path)
+        info, _ = prep_package(pkg_path, recursive)
 
-    # Note
-    #   Since `importer()` is located in `__init__.py` file
-    #   the package is already created, so lets use that.
-    current_module = sys.modules[package]
+    if (module := modules.pop(package, None)) is None:
+        error = f'`importer()` can not find package {package!r}'
+        raise ImportError(error)
 
-    # Note
-    #   - lets keep everything from the current module as is.
-    #   - enables importing directly before `importer()` is called.
-    #   - also doesn't break features like exceptions, ...
-    module.__dict__.update(current_module.__dict__)
-
-    # Lets switch new module with the current module.
-    sys.modules[package] = module
+    modules[package] = Module(package, info, module)
