@@ -3,10 +3,10 @@ Dynamic Import
 
 Let Dynamic Import handle your projects(package) import needs. Enables you to dynamically(lazily) import module as needed on run-time.
 
-* Place `importer()` into top `__init__.py` file and forget about where variable, function, class, ... is located!
+* Place ``importer()`` into top ``__init__.py`` file and forget about where variable, function, class, ... is located!
 * Move/rename file within your project? No problem, auto updates. 
-* Just call `from <package> import <variable>` while coding and when end-user calls from your project. All names are accessible at top level, easy to remember.
-* Supports `.py` and `.so` (experimental)
+* Just call ``from <package> import <variable>`` while coding and when end-user calls from your project. All names are accessible at top level, easy to remember.
+* Supports ``.py`` and ``.so`` (experimental)
 * Saves memory.
 
 Ultimate worry free management comfort as your project grows from small to large.
@@ -110,7 +110,7 @@ Example
     ['my_var', 'my_function', 'MyClass', ...]
 
 
-Other `importer()` Usage
+Other ``importer()`` Usage
 ------------------------
 ./__init__.py
 
@@ -125,30 +125,30 @@ Other `importer()` Usage
     importer(recursive=False)
 
     # exclude sub-directories
-    importer(exclude_dir='sub-directory-one')  # `exclude_dir: str`
-    importer(exclude_dir=('sub-directory-one', 'sub-directory-two'))  # `exclude_dir: Tuple[str]`
+    importer(exclude_dir='sub-directory-one')  # ``exclude_dir: str``
+    importer(exclude_dir=('sub-directory-one', 'sub-directory-two'))  # ``exclude_dir: Tuple[str]``
 
 
 Note
 ----
-    - Only need to call `importer()` once inside `__init__.py` file.
-    - All sub-directories will be scanned for `.py, .so` file as `recursive=True` by default.
-    - Use `exclude_dir` to list sub-directories you would like to avoid scanning.
+    - Only need to call ``importer()`` once inside ``__init__.py`` file.
+    - All sub-directories will be scanned for ``.py, .so`` file as ``recursive=True`` by default.
+    - Use ``exclude_dir`` to list sub-directories you would like to avoid scanning.
     - You can still use normal static/relative import.
-    - For one word import name you can use string e.g. `__all__ = 'function'` vs `__all__ = ('function',)`
+    - For one word import name you can use string e.g. ``__all__ = 'function'`` vs ``__all__ = ('function',)``
     - All import names must be unique.
-    - Cache can be disabled & removed by using `importer(cache=False)`
-    - Cached temporary files are stored in `./__pycache__/<file>.dynamic_import.pyc`
-    - You can move or rename any `.py` file within project directory or sub-directory and import will not break.
-    - Special name that start and end with "__" are not allowed, e.g: `__something__`
-    - Using `from <package> import *` is not recommended unless you want to load all the modules.
-    - No need to have empty `__init__.py` inside sub-directories. Namespace + Package combined into one.
+    - Cache can be disabled & removed by using ``importer(cache=False)``
+    - Cached temporary files are stored in ``./__pycache__/<file>.dynamic_import.pyc``
+    - You can move or rename any ``.py`` file within project directory or sub-directory and import will not break.
+    - Special name that start and end with "__" are not allowed, e.g: ``__something__``
+    - Using ``from <package> import *`` is not recommended unless you want to load all the modules.
+    - No need to have empty ``__init__.py`` inside sub-directories. Namespace + Package combined into one.
 
 
 Experimental
 ------------
-    - `importer()` also works with certain `.so` file (tested with cython created `.so`).
-    - `.so` should not contain any function/class that auto-run on import, e.g: `run_something()`
+    - ``importer()`` also works with certain ``.so`` file (tested with cython created ``.so``).
+    - ``.so`` should not contain any function/class that auto-run on import, e.g: ``run_something()``
 
 
 License
