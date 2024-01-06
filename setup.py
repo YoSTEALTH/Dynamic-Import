@@ -1,29 +1,35 @@
-from setuptools import setup, find_packages
-from datestamp import stamp
+from setuptools import setup
+from dynamic_import.version import version
 
+
+package = 'dynamic_import'
 
 with open('README.rst', 'r') as file:
     long_description = file.read()
 
-project = 'dynamic_import'
-
 setup(url='https://github.com/YoSTEALTH/Dynamic-Import',
-      name=project,
-      author='STEALTH',
-      version=stamp(project),
-      packages=find_packages(),
-      description=('Dynamically/Lazily import python module on run-time. '
-                   'Also enables easy to use import path name.'),
-      python_requires='>=3.6',
+      name=package,
+      author='Ritesh',
+      version=version,
+      packages=[package],
+      description=('Let Dynamic Import handle your projects(package) import needs. '
+                   'Enables you to dynamically(lazily) import module as needed on run-time.'),
+      python_requires='>=3.8',
       long_description=long_description,
       long_description_content_type="text/x-rst",
-      # Info: https://pypi.python.org/pypi?%3Aaction=list_classifiers
-      classifiers=['License :: Public Domain',
-                   # 'Development Status :: 4 - Beta',
-                   # note: had 0 issues reported over the year, should be ready for production.
-                   'Development Status :: 5 - Production/Stable',
+      classifiers=['Topic :: Software Development',
+                   'License :: Public Domain',
                    'Intended Audience :: Developers',
-                   'Programming Language :: Python :: 3.6',
-                   'Programming Language :: Python :: 3.7',
+                   # 'Development Status :: 1 - Planning',
+                   # 'Development Status :: 2 - Pre-Alpha',
+                   # 'Development Status :: 3 - Alpha',
+                   'Development Status :: 4 - Beta',
+                   # 'Development Status :: 5 - Production/Stable',
+                   # 'Development Status :: 6 - Mature',
+                   # 'Development Status :: 7 - Inactive',
                    'Programming Language :: Python :: 3.8',
-                   'Topic :: Software Development :: Libraries :: Python Modules'])
+                   'Programming Language :: Python :: 3.9',
+                   'Programming Language :: Python :: 3.10',
+                   'Programming Language :: Python :: 3.11',
+                   'Programming Language :: Python :: 3.12'],
+      zip_safe=False)

@@ -1,71 +1,165 @@
 from types import ModuleType
+from importlib.util import spec_from_loader, module_from_spec
+from importlib.machinery import SourceFileLoader, ExtensionFileLoader
+from .prep import EXT_SUFFIX
 
-__all__ = ('Module',)
+
+__all__ = 'Module',
 
 
-class Module(ModuleType):  # ModuleType = type(sys.modules)
+class Module(ModuleType):
 
-    def __init__(self, pkg, all, reverse, *args, **kwargs):
-        '''
+    __slots__ = '__PACKAGE__', '__INFO__'
+
+    def __init__(self, package, info, module, *args, **kwargs):
+        ''' Dynamic import module
+
             Type
-                pkg:        str
-                all:        Dict[str, Tuple[str]],
-                reverse:    Dict[str, str]
-                args:       Tuple[any]
-                kwargs:     Dict[str, any]
-                return:     None
+                package: str
+                info:    Dict[str, Tuple[str, str, Union[List[str], Tuple[str]]]]
+                module:  sys
+                args:    Tuple[any]
+                kwargs:  Dict[str, any]
+                return:  None
         '''
-        # Mask as special attribute to avoid user overwriting attribute name with module name
-        self.__importer_all__ = all  # {'test.one': ('a', 'b', 'c'), ...}
-        self.__importer_reverse__ = reverse  # {'a': 'test.one', ...}
+        self.__PACKAGE__ = package
+        self.__INFO__ = info
+        # note: ^ this needs to mimic magic method name since those are made to raise error
+        self.__dict__.update(module.__dict__)
+        setattr(self, '__all__', (*self.__dict__, *self.__INFO__))
 
-        # Run original `ModuleType.__init__()`
-        super().__init__(pkg, None, *args, **kwargs)
+        # TODO: what does this actually do?
+        # super().__init__(package, None, *args, **kwargs)
+
+    def __dir__(self):
+        '''
+            Example:
+                >>> import library
+                >>> dir(library)
+                [....]
+
+            Note:
+                - returns all names without actually loading the module yet!
+        '''
+        return self.__all__
 
     def __getattr__(self, name):
         '''
             Type
                 name:   str
-                return: object
+                return: any
+
+            Example
+                >>> from pkg import one
+
+                # or
+
+                >>> import pkg
+                >>> pkg.one()
         '''
-        # e.g: 'a' in {'a': 'test.one', ...}
-        if name in self.__importer_reverse__:
-            try:
-                # Lets import the file the `name` variable is in.
-                module = __import__(
-                    # e.g: self.__importer_reverse__['test.one'], None, None, ['a']
-                    self.__importer_reverse__[name], None, None, [name]
-                    # Note
-                    #   If there is an error inside `__import__()` it will
-                    #   raise ImportError even if its not related to import as
-                    #   sub-error message is suppressed by `__import__()`
-                    #   it seems.
-                )
-            except ModuleNotFoundError:
-                # This error is a bit more clear vs normal error message.
-                _ = ImportError(f'No module named {self.__importer_reverse__[name]!r} located '
-                                f'while trying to import {name!r}')
-                raise _ from None
+        # print('__getattr__', name)
+        if name in self.__INFO__:
+            # print('__INFO__', name)
+            module_name, module_path, variables, _ = self.__INFO__[name]
+            if module_path.endswith(EXT_SUFFIX[0]):  # e.g: '.py'
+                loader = SourceFileLoader(module_name, module_path)
+            elif module_path.endswith(EXT_SUFFIX[1:]):  # e.g: '.cpython-312-x86_64-linux-gnu.so'
+                loader = ExtensionFileLoader(module_name, module_path)
             else:
-                # Note
-                #   Lets also assign rest of the instance(s) belonging to
-                #   the same module while we are at it, so we don't have to
-                #   re-import them again!
+                raise NotImplementedError(f'`Module()` {module_path!r} extension type.')
+            spec = spec_from_loader(loader.name, loader)
+            module = module_from_spec(spec)
+            # print('dir:', dir(module))
+            loader.exec_module(module)
 
-                # e.g: 'a' in ['a', 'b', 'c']
-                for attr in self.__importer_all__[module.__name__]:
-                    # self.__dict__[attr] = module.__dict__[attr]
-                    setattr(self, attr, getattr(module, attr))
+            # add all the variables found in modules `__all__` into `self`
+            for var in variables:
+                setattr(self, var, getattr(module, var))
+            return getattr(self, name)
+        # elif name == '__all__':
+        #     # support `from module import *` & `module.__all__` lookup
+        #     print('__all__')
+        #     # if self.__ALL__ is None:
+        #     #     # self.__ALL__ = tuple(self.__INFO__.keys())
+        #     #     self.__ALL__ = (*self.__dict__, *self.__INFO__)
+        #     return self.__all__
+        else:
+            try:
+                return super().__getattr__(name)
+            except AttributeError:
+                error = f'module {self.__PACKAGE__!r} has no attribute {name!r}\n'
+                raise AttributeError(error) from None
 
-                # Lets return dynamically imported module
-                # return self.__dict__[name]
-                return getattr(self, name)
 
-        # Stragglers, lets let ModuleType handle it.
-        return ModuleType.__getattribute__(self, name)
+# working really good:
+# from types import ModuleType
+# from importlib.util import spec_from_loader, module_from_spec
+# from importlib.machinery import SourceFileLoader, ExtensionFileLoader
+# from .prep import EXT_SUFFIX
 
-    # def __dir__(self):
-    #     # Lets ignore internally used instances we created.
-    #     ignore = {'__importer_all__', '__importer_reverse__'}
-    #     # Nice and clean `dir(test)` printout.
-    #     return [attr for attr in self.__dict__ if attr not in ignore]
+
+# __all__ = 'Module',
+
+
+# class Module(ModuleType):
+
+#     def __init__(self, package, info, module, *args, **kwargs):
+#         ''' Dynamic import module
+
+#             Type
+#                 package: str
+#                 info:    Dict[str, Tuple[str, str, Union[List[str], Tuple[str]]]]
+#                 module:  sys
+#                 args:    Tuple[any]
+#                 kwargs:  Dict[str, any]
+#                 return:  None
+#         '''
+#         self.__PACKAGE__ = package
+#         self.__INFO__ = info
+#         self.__ALL__ = None
+#         # note: ^ this needs to mimic magic method name since those are made to raise error
+#         self.__dict__.update(module.__dict__)
+#         super().__init__(package, None, *args, **kwargs)
+
+#     def __getattr__(self, name):
+#         '''
+#             Type
+#                 name:   str
+#                 return: any
+
+#             Example
+#                 >>> from pkg import one
+
+#                 # or
+
+#                 >>> import pkg
+#                 >>> pkg.one()
+#         '''
+#         if name in self.__INFO__:
+#             module_name, module_path, variables = self.__INFO__[name]
+#             if module_path.endswith(EXT_SUFFIX[0]):  # e.g: '.py'
+#                 loader = SourceFileLoader(module_name, module_path)
+#             elif module_path.endswith(EXT_SUFFIX[1:]):  # e.g: '.cpython-312-x86_64-linux-gnu.so'
+#                 loader = ExtensionFileLoader(module_name, module_path)
+#             else:
+#                 raise NotImplementedError(f'`Module()` {module_path!r} extension type.')
+#             spec = spec_from_loader(loader.name, loader)
+#             module = module_from_spec(spec)
+#             loader.exec_module(module)
+
+#             # add all the variables found in modules `__all__` into `self`
+#             for var in variables:
+#                 setattr(self, var, getattr(module, var))
+#             return getattr(self, name)
+#         elif name == '__all__':
+#             # support `from module import *` & `module.__all__` lookup
+#             if self.__ALL__ is None:
+#                 self.__ALL__ = tuple(self.__INFO__.keys())
+#             return self.__ALL__
+#         else:
+#             try:
+#                 return super().__getattr__(name)
+#             except AttributeError:
+#                 _ = f'module {self.__PACKAGE__!r} has no attribute {name!r}'
+#                 raise AttributeError(_) from None
+
