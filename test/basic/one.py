@@ -6,4 +6,3 @@ __all__ = 'one'
 
 def one():
     return 'inside one()'
-
