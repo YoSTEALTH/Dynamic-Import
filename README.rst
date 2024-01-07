@@ -25,7 +25,7 @@ Install, update & uninstall
 
 Use `pip`_ to:
 
-.. code-block:: text
+.. code-block:: bash
 
     python3 -m pip install --user dynamic-import            # install
 
