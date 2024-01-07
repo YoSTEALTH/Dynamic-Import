@@ -3,7 +3,7 @@ from ast import FunctionDef, AsyncFunctionDef, ClassDef, Assign, parse, literal_
 from .special import special
 
 
-__all__ = 'extract_variable',
+__all__ = 'extract_variable', 'extract_so_variable'
 LIST_TUPLE = (list, tuple)
 
 
@@ -76,9 +76,9 @@ def extract_so_variable(module_name):
             >>> extract_so_variable('file_3.cpython-312-x86_64-linux-gnu.so', '__all__')
             ('variable', 'ClassName', 'function_name')
     '''
-    # TODO: this is flawed !!! should not load the module since it can run functions!
-    # NOTE: this is a temp solution
-    module = import_module(module_name)  # temp load module
+    module = import_module(module_name)
+    # note: `import_module` loads `.so` file and gets the list of names. Currently there
+    #       isn't a better solution that I know of.
 
     variables = []
     if find := getattr(module, '__all__', None):

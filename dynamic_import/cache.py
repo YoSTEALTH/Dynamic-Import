@@ -8,7 +8,7 @@ from .prep import mtime_it
 
 
 __all__ = 'CACHE_DIR_PATH', 'MARSHAL_VERSION', 'VERSION_TAG', 'CACHE_EXT', 'pkg_cache_path', \
-          'dump_cache', 'load_cache', 'create_cache_dir'
+          'create_cache_dir', 'dump_cache', 'load_cache'
 CACHE_DIR_PATH = pycache_prefix or '__pycache__'
 MARSHAL_VERSION = 4
 VERSION_TAG = implementation.cache_tag.split('-')[1]  # e.g: 'cpython-312' to '312'
@@ -25,7 +25,7 @@ def pkg_cache_path(pkg_file, name):
 
         Example
             >>> pkg_cache_path('/path/pkg/__init__.py')
-            '/path/pkg/__pycache__/__init__.dynamic-import.pyc'
+            '/path/pkg/__pycache__/__init__.importer-312.pyc'
     '''
     file_name = f'{splitext(basename(pkg_file))[0]}.{name}-{VERSION_TAG}{CACHE_EXT}'
     return join(dirname(pkg_file), CACHE_DIR_PATH, file_name)
@@ -39,7 +39,7 @@ def create_cache_dir(cache_path):
             return:     None
 
         Example
-            >>> create_cache_dir('/path/pkg/__pycache__/__init__.dynamic-import.pyc')
+            >>> create_cache_dir('/path/pkg/__pycache__/__init__.importer-312.pyc')
     '''
     pkg_dir = dirname(cache_path)
     if not exists(pkg_dir):
@@ -59,7 +59,7 @@ def dump_cache(cache_path, data, recursive, exclude_paths, dir_mtime):
             return:        None
 
         Example
-            >>> dump_cache('/path/pkg/__pycache__/__init__.dynamic-import.pyc', ...)
+            >>> dump_cache('/path/pkg/__pycache__/__init__.importer-312', ...)
     '''
     with open(cache_path, 'w+b') as file:
         dump((version, recursive, exclude_paths, dir_mtime, data), file, MARSHAL_VERSION)
@@ -75,7 +75,7 @@ def load_cache(cache_path, recursive, exclude_paths):
             return:        any
 
         Example
-            >>> load_cache('/path/pkg/__pycache__/__init__.dynamic-import.pyc')
+            >>> load_cache('/path/pkg/__pycache__/__init__.importer-312.pyc')
     '''
     with open(cache_path, 'rb') as file:
         try:
