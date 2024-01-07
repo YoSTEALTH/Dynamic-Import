@@ -1,7 +1,10 @@
 from os import remove
 from sys import _getframe, modules
 from os.path import exists
-from functools import cache
+try:
+    from functools import cache
+except ImportError:  # account for python 3.8
+    from functools import lru_cache as cache
 from .module import Module
 from .check import importer_called, exclude_directory
 from .cache import pkg_cache_path, create_cache_dir, dump_cache, load_cache
@@ -19,6 +22,7 @@ def importer(*, cache=True, recursive=True, exclude=None, exclude_dir=None):
         Type
             cache:       bool
             recursive:   bool
+            exclude:     Union[Tuple[str], str, None]
             exclude_dir: Union[Tuple[str], str, None]
             return:      None
 
@@ -33,9 +37,12 @@ def importer(*, cache=True, recursive=True, exclude=None, exclude_dir=None):
 
             # prevent scanning sub-directories
             >>> importer(recursive=False)
+            
+            # TODO: exclude `.py, .so` file
+            >>> importer(exclude_dir=('/path/pkg/ignore_this_file.py', ...))
 
             # exclude sub-directory
-            >>> importer(exclude=['/path/pkg/sub-dir', ...])
+            >>> importer(exclude_dir=('/path/pkg/sub-dir', ...))
 
         Note:
             - `importer()` on first run will scan all the `.py` files for `__all__` or variables to later import them
@@ -51,6 +58,9 @@ def importer(*, cache=True, recursive=True, exclude=None, exclude_dir=None):
     except KeyError:
         raise ImportError(ERROR_MSG) from None
 
+    if exclude:
+        raise NotImplementedError('importer(exclude)')
+
     if not package or not pkg_path.endswith('/__init__.py'):
         raise ImportError(ERROR_MSG)
 
@@ -60,7 +70,6 @@ def importer(*, cache=True, recursive=True, exclude=None, exclude_dir=None):
     # exclude sub directories
     if recursive and exclude_dir:
         exclude_paths = exclude_directory(exclude_dir, pkg_path)
-        # TODO: don't think this is accounted for while cached.
     else:
         exclude_paths = []
 

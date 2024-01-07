@@ -1,6 +1,9 @@
 from os import walk, stat
 from os.path import join, dirname
-from functools import cache
+try:
+    from functools import cache
+except ImportError:  # account for python 3.8
+    from functools import lru_cache as cache
 from importlib.machinery import EXTENSION_SUFFIXES
 from .extract import extract_variable, extract_so_variable
 from .special import special
