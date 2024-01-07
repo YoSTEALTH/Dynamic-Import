@@ -1,4 +1,6 @@
-Dynamic Import
+|test-status|
+
+Dynamic Import 
 ==============
 
 Let Dynamic Import handle your projects(package) import needs. Enables you to dynamically(lazily) import module as needed on run-time.
@@ -125,8 +127,8 @@ Other ``importer()`` Usage
     importer(recursive=False)
 
     # exclude sub-directories
-    importer(exclude_dir='sub-directory-one')  # ``exclude_dir: str``
-    importer(exclude_dir=('sub-directory-one', 'sub-directory-two'))  # ``exclude_dir: Tuple[str]``
+    importer(exclude_dir='sub-directory-one')  # `exclude_dir: str`
+    importer(exclude_dir=('sub-directory-one', 'sub-directory-two'))  # `exclude_dir: Tuple[str]`
 
 
 Note
@@ -138,9 +140,9 @@ Note
     - For one word import name you can use string e.g. ``__all__ = 'function'`` vs ``__all__ = ('function',)``
     - All import names must be unique.
     - Cache can be disabled & removed by using ``importer(cache=False)``
-    - Cached temporary files are stored in ``./__pycache__/<file>.dynamic_import.pyc``
+    - Cached temporary files are stored in ``./__pycache__/__init__.importer-<python-version>.pyc``
     - You can move or rename any ``.py`` file within project directory or sub-directory and import will not break.
-    - Special name that start and end with "__" are not allowed, e.g: ``__something__``
+    - Special name that start and end with ``"__"`` are not allowed, e.g: ``__something__``
     - Using ``from <package> import *`` is not recommended unless you want to load all the modules.
     - No need to have empty ``__init__.py`` inside sub-directories. Namespace + Package combined into one.
 
@@ -157,3 +159,6 @@ Free, Public Domain (CC0). `Read more`_
 
 .. _pip: https://pip.pypa.io/en/stable/quickstart/
 .. _Read more: https://github.com/YoSTEALTH/Dynamic-Import/blob/master/LICENSE.txt
+.. |test-status| image:: https://github.com/yostealth/dynamic-import/actions/workflows/test.yml/badge.svg?branch=master&event=push
+    :target: https://github.com/yostealth/dynamic-import/actions/workflows/test.yml
+    :alt: Test status
