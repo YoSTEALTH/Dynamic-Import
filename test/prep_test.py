@@ -42,7 +42,7 @@ def test_prep():
                      'test/basic/sub/auto_find.py',
                      ['my_function', 'var', 'MyClass', 'my_async_func'])
              }
-    find_dir_mtime = ['test/basic/', 'test/basic/sub/', 'test/basic/sub/conflict/', 'test/basic/sub/child/']
+    find_dir_mtime = {'test/basic/', 'test/basic/sub/', 'test/basic/sub/conflict/', 'test/basic/sub/child/'}
     cached_match = {}
     pkg_path = 'test/basic/'
 
@@ -53,5 +53,5 @@ def test_prep():
     for k, v in info.items():
         cached_match[k] = v[0:3]  # note: ignore the last file modification time.
 
-    assert list(dir_mtime) == find_dir_mtime
+    assert set(dir_mtime) == find_dir_mtime
     assert cached_match == match
