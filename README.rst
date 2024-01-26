@@ -1,4 +1,4 @@
-|test-status|
+|test-status| |Downloads|
 
 Dynamic Import
 ==============
@@ -174,3 +174,5 @@ Free, Public Domain (CC0). `Read more`_
 .. |test-status| image:: https://github.com/yostealth/dynamic-import/actions/workflows/test.yml/badge.svg?branch=master&event=push
     :target: https://github.com/yostealth/dynamic-import/actions/workflows/test.yml
     :alt: Test status
+.. |Downloads| image:: https://img.shields.io/pypi/dm/dynamic_import
+   :alt: PyPI - Downloads
