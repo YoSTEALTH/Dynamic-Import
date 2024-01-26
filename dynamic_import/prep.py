@@ -1,5 +1,5 @@
 from os import walk, stat
-from os.path import join, dirname
+from os.path import join
 try:
     from functools import cache
 except ImportError:  # account for python 3.8
@@ -14,69 +14,80 @@ __all__ = 'EXT_SUFFIX', 'prep_package', 'prep_files', 'prep_variables', 'mtime_i
 EXT_SUFFIX = ('.py', *(i for i in EXTENSION_SUFFIXES if i != '.so'))
 
 
-def prep_package(pkg_file, recursive):
+def prep_package(pkg_name, pkg_path, recursive, exclude_file, exclude_dir):
     '''
         Type
-            pkg_file:  str
-            recursive: bool
-            return:    Dict[str, Tuple[str, stf, Union[List[str], Tuple[str]]]]
+            pkg_path:     str
+            pkg_name:     str
+            recursive:    bool
+            exclude_file: List[str]
+            exclude_dir:  List[str]
+            return:       Dict[str, Tuple[str, stf, Union[List[str], Tuple[str]]]]
 
         Example
-            >>> prep_package('package', True)
+            >>> prep_package('pkg', '/path/pkg/', True, [], [])
             {'one': ('sub.module', '/path/pkg/sub/module.py', ('one', 'two', 'three', ...)), ...}
     '''
     info = {}
     dir_mtime = {}
-    for name, file_path, mtime in prep_files(pkg_file, recursive, dir_mtime):
-        # print('name:', name, 'file_path:', file_path)
-        for var, variables in prep_variables(file_path, name):
-            info[var] = (name, file_path, variables, mtime)
-    # print('dir_mtime:', dir_mtime)
+    for module, file_path, mtime in prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_dir):
+        for var, variables in prep_variables(module, file_path):
+            info[var] = (module, file_path, variables, mtime)
     return info, dir_mtime
 
 
-def prep_files(pkg_file, recursive, dir_mtime):
+def prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_dir):
     ''' Prepare python files and module names
 
         Type
-            pkg_file:  str
-            recursive: bool
-            yield:     Tuple[str, Union[Tuple[str], List[str]], float]
-            return:    None
+            pkg_name:     str
+            pkg_path:     str
+            recursive:    bool
+            dir_mtime:    Dict[str, float]
+            exclude_file: List[str]
+            exclude_dir:  List[str]
+            yield:        Tuple[str, Union[Tuple[str], List[str]], float]
+            return:       None
 
         Example
-            >>> for name, file_path in prep_files('pkg', /path/pkg'):
-            ...     name, file_path
-            ('sub.module', '/path/pkg/sub/module.py', 123.45)
-            ...
+            >>> for name, file_path, mtime in prep_files('pkg', /path/pkg'):
+            ...     name, file_path, mtime
+            'sub.module' '/path/pkg/sub/module.py' 123.45
 
         Note
             - Any sub-directories with `__init__.py` file found is ignored!!!
             as there should only be 1  `__init__.py` file at top level.
     '''
-    # note: using `pkg_file` to avoid cases where package & pkg_path was overridden by user
-    # its assumed `pkg_file` ends with `__init__.py` why there is no check here
-
-    pkg_path = dirname(pkg_file)  # e.g: `/path/pkg`
-    skip = len(pkg_path)
-    package = pkg_path.split('/')[-1]  # e.g. `pkg`
+    skip = len(pkg_path) - len(pkg_name) - 1  # "/path/pkg" - "pkg" - 1
     for root, dirs, files in walk(pkg_path):
+        # skip all `__pycache__` folder
         if root.endswith('/__pycache__'):
             continue
+
+        # skip excluded directory
+        if (root_path := root if root.endswith('/') else f'{root}/') in exclude_dir:
+            continue
+
         if files:
-            sub = '.'.join(root[skip:].split('/'))  # e.g: `/path/pkg/sub` -to-> `.sub`
+            # e.g: "/path/basic/sub/child" to "basic.sub.child"
+            if (module_name := root[skip:].replace("/", ".")).endswith('.'):
+                module_name = module_name[:-1]
+
             for file in files:
                 if file.endswith(EXT_SUFFIX):
+                    # skip excluded file
+                    if (file_path := join(root, file)) in exclude_file:
+                        continue
                     # only add directory that have `EXT_SUFFIX` in it.
-                    dir_mtime[root] = mtime_it(root)
-                    file_path = join(root, file)
+                    dir_mtime[root_path] = mtime_it(root_path)  # cached called
                     mtime = stat(file_path).st_mtime
+
                     if file == '__init__.py':
-                        yield f'{package}{sub}', file_path, mtime
+                        yield f'{module_name}', file_path, mtime
                     else:
-                        yield f'{package}{sub}.{file.split(".")[0]}', file_path, mtime
-                        # ('pkg.sub.module', '/path/pkg/sub/module.py')
-                        # ('pkg.sub.module', '/path/pkg/sub/module.cpython-312-x86_64-linux-gnu.so')
+                        yield f'{module_name}.{file.split(".")[0]}', file_path, mtime
+                        # ('pkg.sub.module', '/path/pkg/sub/module.py', 123.45)
+                        # ('pkg.sub.module', '/path/pkg/sub/module.cpython-312-x86_64-linux-gnu.so', 123.45)
         if not recursive:
             break
 
@@ -86,17 +97,17 @@ def mtime_it(root):
     return stat(root).st_mtime
 
 
-def prep_variables(file_path, module_name):
+def prep_variables(module_name, file_path):
     ''' Prepare `__all__` variable names
 
         Type
-            file_path:   str
             module_name: str
+            file_path:   str
             yield:       Tuple[str, Union[List[str], Tuple[str]]]
             return:      None
 
         Example
-            >>> for var, variables in prep_variables('/path/pkg/sub/module.py')
+            >>> for var, variables in prep_variables('pkg.sub.module', '/path/pkg/sub/module.py')
             ...     var, variables
             'one', ('one', 'two')
             'two', ('one', 'two')
