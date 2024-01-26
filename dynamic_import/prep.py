@@ -9,9 +9,14 @@ from .extract import extract_variable, extract_so_variable
 from .special import special
 
 
-__all__ = 'EXT_SUFFIX', 'prep_package', 'prep_files', 'prep_variables', 'mtime_it'
+__all__ = 'EXT_SUFFIX', 'mtime_it', 'prep_package', 'prep_files', 'prep_variables'
 # e.g: ('.py', '.cpython-312-x86_64-linux-gnu.so', '.abi3.so')
 EXT_SUFFIX = ('.py', *(i for i in EXTENSION_SUFFIXES if i != '.so'))
+
+
+@cache
+def mtime_it(path: str) -> float:
+    return stat(path).st_mtime
 
 
 def prep_package(pkg_name, pkg_path, recursive, exclude_file, exclude_dir):
@@ -69,7 +74,7 @@ def prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_d
             continue
 
         if files:
-            # e.g: "/path/basic/sub/child" to "basic.sub.child"
+            # e.g: "/path/pkg/sub/module/" to "pkg.sub.module"
             if (module_name := root[skip:].replace("/", ".")).endswith('.'):
                 module_name = module_name[:-1]
 
@@ -90,11 +95,6 @@ def prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_d
                         # ('pkg.sub.module', '/path/pkg/sub/module.cpython-312-x86_64-linux-gnu.so', 123.45)
         if not recursive:
             break
-
-
-@cache
-def mtime_it(root):
-    return stat(root).st_mtime
 
 
 def prep_variables(module_name, file_path):
