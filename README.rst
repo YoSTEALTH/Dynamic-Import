@@ -1,4 +1,4 @@
-|test-status| |Downloads|
+|test-status| |downloads|
 
 Dynamic Import
 ==============
@@ -28,11 +28,20 @@ Use `pip`_ to:
 
 .. code-block:: bash
 
-    python3 -m pip install --user dynamic-import            # install
+    python3 -m pip install dynamic-import            # install
 
-    python3 -m pip install --user --upgrade dynamic-import  # update
+    python3 -m pip install --upgrade dynamic-import  # update
 
-    python3 -m pip uninstall dynamic-import                 # uninstall
+    python3 -m pip uninstall dynamic-import          # uninstall
+
+
+Install directly from GitHub
+____________________________
+
+
+.. code-block:: bash
+
+    python3 -m pip install --upgrade git+https://github.com/YoSTEALTH/Dynamic-Import
 
 
 Usage
@@ -174,5 +183,5 @@ Free, Public Domain (CC0). `Read more`_
 .. |test-status| image:: https://github.com/yostealth/dynamic-import/actions/workflows/test.yml/badge.svg?branch=master&event=push
     :target: https://github.com/yostealth/dynamic-import/actions/workflows/test.yml
     :alt: Test status
-.. |Downloads| image:: https://img.shields.io/pypi/dm/dynamic_import
+.. |downloads| image:: https://img.shields.io/pypi/dm/dynamic_import
    :alt: PyPI - Downloads
