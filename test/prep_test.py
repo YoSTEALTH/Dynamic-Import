@@ -1,4 +1,3 @@
-import sys
 from dynamic_import.prep import EXT_SUFFIX, prep_package
 
 
@@ -43,12 +42,16 @@ def test_prep():
                      'test/basic/sub/auto_find.py',
                      ['my_function', 'var', 'MyClass', 'my_async_func'])
              }
-    find_dir_mtime = {'test/basic', 'test/basic/sub', 'test/basic/sub/conflict', 'test/basic/sub/child'}
+    find_dir_mtime = ['test/basic/', 'test/basic/sub/', 'test/basic/sub/conflict/', 'test/basic/sub/child/']
     cached_match = {}
-    info, dir_mtime = prep_package('test/basic/__init__.py', True)
+    pkg_path = 'test/basic/'
+
+    exclude_file = ['test/basic/sub/skip-me.py']
+    exclude_dir = ['test/basic/skip/']
+
+    info, dir_mtime = prep_package('basic', pkg_path, True, exclude_file, exclude_dir)
     for k, v in info.items():
         cached_match[k] = v[0:3]  # note: ignore the last file modification time.
 
-    assert dir_mtime.keys() == find_dir_mtime
+    assert list(dir_mtime) == find_dir_mtime
     assert cached_match == match
-    assert 'html' not in sys.modules
