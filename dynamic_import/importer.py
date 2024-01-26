@@ -1,12 +1,12 @@
 from os import remove
 from sys import _getframe, modules
-from os.path import exists
+from os.path import exists, split
 try:
     from functools import cache
 except ImportError:  # account for python 3.8
     from functools import lru_cache as cache
 from .module import Module
-from .check import importer_called, exclude_directory
+from .check import importer_called, exclude_file_check, exclude_dir_check
 from .cache import pkg_cache_path, create_cache_dir, dump_cache, load_cache
 from .prep import prep_package
 
@@ -16,15 +16,15 @@ ERROR_MSG = '`importer()` must be called from within `__init__.py`'
 
 
 @cache
-def importer(*, cache=True, recursive=True, exclude=None, exclude_dir=None):
+def importer(*, cache=True, recursive=True, exclude_file=None, exclude_dir=None):
     ''' Automatically import modules dynamically.
 
         Type
-            cache:       bool
-            recursive:   bool
-            exclude:     Union[Tuple[str], str, None]
-            exclude_dir: Union[Tuple[str], str, None]
-            return:      None
+            cache:        bool
+            recursive:    bool
+            exclude_file: Union[Tuple[str], str, None]
+            exclude_dir:  Union[Tuple[str], str, None]
+            return:       None
 
         Example
             # /pkg/__init__.py
@@ -38,11 +38,13 @@ def importer(*, cache=True, recursive=True, exclude=None, exclude_dir=None):
             # prevent scanning sub-directories
             >>> importer(recursive=False)
             
-            # TODO: exclude `.py, .so` file
-            >>> importer(exclude_dir=('/path/pkg/ignore_this_file.py', ...))
+            # exclude `.py, .so` file
+            >>> importer(exclude_file='file.py')                            # single
+            >>> importer(exclude_file=('file.py', 'sub-dir/file.py', ...))  # multiple
 
             # exclude sub-directory
-            >>> importer(exclude_dir=('/path/pkg/sub-dir', ...))
+            >>> importer(exclude_dir='sub-dir')                        # single
+            >>> importer(exclude_dir=('sub-dir', 'sub/sub-dir', ...))  # multiple
 
         Note:
             - `importer()` on first run will scan all the `.py` files for `__all__` or variables to later import them
@@ -53,41 +55,37 @@ def importer(*, cache=True, recursive=True, exclude=None, exclude_dir=None):
     caller = _getframe(1).f_globals  # get info of where `importer()` is being called from
     # note: avoiding using `inspect` module as it was adding 300-800% slowdown on run-time
     try:
-        package = caller['__package__']
-        pkg_path = caller['__file__']
+        pkg_name = caller['__package__']
+        file_path = caller['__file__']
     except KeyError:
         raise ImportError(ERROR_MSG) from None
+    else:
+        pkg_dir, init_file = split(file_path)  # '/path/pkg', '__init__.py'
+        pkg_path = f'{pkg_dir}/'  # '/path/pkg' to '/path/pkg/'
 
-    if exclude:
-        raise NotImplementedError('importer(exclude)')
-
-    if not package or not pkg_path.endswith('/__init__.py'):
+    if not pkg_name or init_file != '__init__.py':
         raise ImportError(ERROR_MSG)
 
     # check if `importer()` was previously called.
     importer_called(pkg_path)
-
+    # exclude file
+    exclude_file_path = exclude_file_check(exclude_file, pkg_name, pkg_path)  # type: list
     # exclude sub directories
-    if recursive and exclude_dir:
-        exclude_paths = exclude_directory(exclude_dir, pkg_path)
-    else:
-        exclude_paths = []
-
-    cache_path = pkg_cache_path(pkg_path, 'importer')
-
+    exclude_dir_path = exclude_dir_check(exclude_dir, pkg_path, recursive)  # type: list
+    cache_path = pkg_cache_path(pkg_path, init_file, 'importer')  # type: str
     if cache:
         while True:
             if exists(cache_path):
-                if info := load_cache(cache_path, recursive, exclude_paths):
+                if info := load_cache(cache_path, recursive, exclude_file_path, exclude_dir_path):
                     break
                 else:
                     remove(cache_path)
                     continue
             else:
                 try:
-                    info, dir_mtime = prep_package(pkg_path, recursive)
+                    info, dir_mtime = prep_package(pkg_name, pkg_path, recursive, exclude_file_path, exclude_dir_path)
                     create_cache_dir(cache_path)
-                    dump_cache(cache_path, info, recursive, exclude_paths, dir_mtime)
+                    dump_cache(cache_path, info, recursive, exclude_file_path, exclude_dir_path, dir_mtime)
                     break
                 except Exception as e:
                     if exists(cache_path):
@@ -96,10 +94,10 @@ def importer(*, cache=True, recursive=True, exclude=None, exclude_dir=None):
     else:
         if exists(cache_path):
             remove(cache_path)
-        info, _ = prep_package(pkg_path, recursive)
+        info, _ = prep_package(pkg_name, pkg_path, recursive, exclude_file_path, exclude_dir_path)
 
-    if (module := modules.pop(package, None)) is None:
-        error = f'`importer()` can not find package {package!r}'
+    if (module := modules.pop(pkg_name, None)) is None:
+        error = f'`importer()` can not find package {pkg_name!r}'
         raise ImportError(error)
 
-    modules[package] = Module(package, info, module)
+    modules[pkg_name] = Module(pkg_name, info, module)
