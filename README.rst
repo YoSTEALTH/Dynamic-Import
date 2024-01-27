@@ -170,7 +170,7 @@ Experimental
 ------------
     - ``importer()`` also works with certain ``.cpython-<...>.so`` ``.abi3.so`` file (tested with cython created ``.so``).
     - ``.so`` should not contain any function/class that auto-run on import, e.g: ``run_something()``
-    .. - Visit `Liburing`_ to see project using Dynamic Import with ``.so`` files in action.
+    - Visit `Liburing`_ to see project using Dynamic Import with ``.so`` files in action.
 
 
 License
