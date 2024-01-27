@@ -50,9 +50,6 @@ def exclude_file_check(exclude_file, pkg_name, pkg_path):
 
             >>> exclude_file_check(('one.py', 'two.cpython-312-x86_64-linux-gnu.so'), 'pkg', '/path/pkg/')
             ['/path/pkg/one.py', '/path/pkg/two.cpython-312-x86_64-linux-gnu.so']
-
-        Note
-            - This is an internal function used by Dynamic Importer thus should not be used.
     '''
     r = []
     if not exclude_file:
