@@ -47,9 +47,9 @@ ____________________________
 Usage
 -----
 
-``./<package>/__init__.py``
-
 .. code-block:: python
+
+    # ./<package>/__init__.py
 
     from dynamic_import import importer
 
@@ -82,9 +82,9 @@ ______________________
 Example
 -------
 
-``./example/pkg/__init__.py``
-
 .. code-block:: python
+
+    # ./example/pkg/__init__.py
 
     from dynamic_import import importer
 
@@ -92,9 +92,9 @@ Example
     importer()
 
 
-``./example/pkg/var.py``
-
 .. code-block:: python
+
+    # ./example/pkg/var.py
 
     import sys
 
@@ -104,9 +104,9 @@ Example
     my_var = sys.version_info.major
 
 
-``./example/pkg/functions/myfunction.py``
-
 .. code-block:: python
+
+    # ./example/pkg/functions/myfunction.py
 
     # all import names are available at higher level, 
     # no need for `from ..example.var import my_var`
@@ -120,9 +120,9 @@ Example
         return my_var + 1
 
 
-``./example/classes/__init__.py``
-
 .. code-block:: python
+
+    # ./example/classes/__init__.py
 
     __all__ = ['MyClass']
 
@@ -134,9 +134,10 @@ Example
 Calling
 _______
 
-``./example/calling.py``
 
 .. code-block:: python
+
+    # ./example/calling.py
 
     # you can import all 3 names regardless of where they are located as:
     from pkg import my_var, my_function, MyClass
