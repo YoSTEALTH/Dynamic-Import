@@ -23,30 +23,30 @@ if (jobs := os.cpu_count()) > 4:
 
 
 @pytest.mark.skipif(skip_cython, reason='Cython/Cythonize NOT Installed!')
-def test_extract_so_variable(tmpdir):
+def test_extract_so_variable(tmp_dir):
     # create 'pkg' directory
-    pkg_path = tmpdir / 'pkg'
+    pkg_path = tmp_dir / 'pkg'
     pkg_path.mkdir()
 
     # create '__init__.pyx'
     pyx = pkg_path / '__init__.py'
-    pyx.write(b'')
+    pyx.write_text('')
 
     # create 'one.pyx'
     one_pyx = pkg_path / 'one.pyx'
-    one_pyx.write(b'cpdef hello_one(name):\n\treturn f"Hello {name}!"\n\n')
+    one_pyx.write_text('cpdef hello_one(name):\n\treturn f"Hello {name}!"\n\n')
 
     # create 'two.pyx'
     two_pyx = pkg_path / 'two.pyx'
-    two_pyx.write(b'__all__ = ["hello_two"]\ncpdef hello_two(name):\n\treturn f"Hello {name}!"\n\n')
+    two_pyx.write_text('__all__ = ["hello_two"]\ncpdef hello_two(name):\n\treturn f"Hello {name}!"\n\n')
 
     # create 'three.pyx'
     three_pyx = pkg_path / 'three.pyx'
-    three_pyx.write(b'__all__ = "hello_three"\ncpdef hello_three(name):\n\treturn f"Hello {name}!"\n\n')
+    three_pyx.write_text('__all__ = "hello_three"\ncpdef hello_three(name):\n\treturn f"Hello {name}!"\n\n')
 
     # create 'error.pyx'
     error_pyx = pkg_path / 'error.pyx'
-    error_pyx.write(b'__all__ = 123\ncpdef hello_error(name):\n\treturn f"Hello {name}!"\n\n')
+    error_pyx.write_text('__all__ = 123\ncpdef hello_error(name):\n\treturn f"Hello {name}!"\n\n')
 
     # compile all `.so` file
     assert subprocess.run([cythonize, '--inplace', f'--parallel={jobs}',

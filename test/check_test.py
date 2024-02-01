@@ -4,7 +4,7 @@ from dynamic_import.check import IMPORTER_CALLED, importer_called, exclude_dir_c
 from dynamic_import.prep import EXT_SUFFIX
 
 
-def test_importer_called(tmpdir):
+def test_importer_called():
     pkg_path = '/path/pkg/'
     assert isinstance(IMPORTER_CALLED, dict)
     assert IMPORTER_CALLED.get(pkg_path, None) is None
@@ -26,9 +26,9 @@ def test_importer_called(tmpdir):
     assert importer_called(pkg_path1) is None
 
 
-def test_exclude_file_check(tmpdir):
+def test_exclude_file_check(tmp_dir):
     pkg_name = 'pkg'
-    pkg_dir = tmpdir / pkg_name
+    pkg_dir = tmp_dir / pkg_name
     pkg_path = f'{str(pkg_dir)}/'
     file_path = pkg_dir / 'file.py'
 
@@ -45,19 +45,19 @@ def test_exclude_file_check(tmpdir):
     with pytest.raises(ValueError, match=error):
         exclude_file_check('file.py', pkg_name, pkg_path)
 
-    pkg_dir.mkdir()       # create dir
-    file_path.write(b'')  # create file
+    pkg_dir.mkdir()           # create dir
+    file_path.write_text('')  # create file
 
     r = exclude_file_check('file.py', pkg_name, pkg_path)
     assert isinstance(r, list)
-    assert r == [file_path]
-    assert exclude_file_check('./file.py', pkg_name, pkg_path) == [file_path]
+    assert r == [str(file_path)]
+    assert exclude_file_check('./file.py', pkg_name, pkg_path) == [str(file_path)]
     assert exclude_file_check(None, pkg_name, pkg_path) == []
 
 
-def test_exclude_dir_check(tmpdir):
+def test_exclude_dir_check(tmp_dir):
     pkg_name = 'pkg'
-    pkg_dir = tmpdir / pkg_name
+    pkg_dir = tmp_dir / pkg_name
     pkg_path = f'{str(pkg_dir)}/'
     recursive = True
     sub_dir = pkg_dir / 'sub-dir/'
@@ -67,7 +67,7 @@ def test_exclude_dir_check(tmpdir):
     with pytest.raises(ValueError, match=error):
         exclude_dir_check('/sub-dir', pkg_path, recursive)
 
-    sub = f'{tmpdir}/sub-dir/'
+    sub = f'{tmp_dir}/sub-dir/'
     error = re.escape(f"`importer(exclude_dir)` can not find directory {sub!r} within {pkg_path!r}")
     with pytest.raises(ValueError, match=error):
         exclude_dir_check('../sub-dir', pkg_path, recursive)
