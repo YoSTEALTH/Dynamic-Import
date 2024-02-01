@@ -18,7 +18,7 @@ Requires
 --------
 
     - Python 3.8+
-    - Linux
+    - Linux, MacOS
 
 
 Install, update & uninstall
