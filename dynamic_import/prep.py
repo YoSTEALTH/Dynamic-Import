@@ -1,37 +1,28 @@
 from os import walk, stat
 from os.path import join
-try:
-    from functools import cache
-except ImportError:  # account for python 3.8
-    from functools import lru_cache as cache
 from importlib.machinery import EXTENSION_SUFFIXES
 from .extract import extract_variable, extract_so_variable
 from .special import special
 
 
-__all__ = 'EXT_SUFFIX', 'mtime_it', 'prep_package', 'prep_files', 'prep_variables'
+__all__ = 'EXT_SUFFIX', 'prep_package', 'prep_files', 'prep_variables'
 # e.g: ('.py', '.cpython-312-x86_64-linux-gnu.so', '.abi3.so')
 EXT_SUFFIX = ('.py', *(i for i in EXTENSION_SUFFIXES if i != '.so'))
-
-
-@cache
-def mtime_it(path: str) -> float:
-    return stat(path).st_mtime
 
 
 def prep_package(pkg_name, pkg_path, recursive, exclude_file, exclude_dir):
     '''
         Type
-            pkg_path:     str
             pkg_name:     str
+            pkg_path:     str
             recursive:    bool
             exclude_file: List[str]
             exclude_dir:  List[str]
-            return:       Dict[str, Tuple[str, stf, Union[List[str], Tuple[str]]]]
+            return:     Tuple[Dict[str, Tuple[str, str, Union[List(str), Tuple[str]], float]], Dict[str, float]]
 
         Example
-            >>> prep_package('pkg', '/path/pkg/', True, [], [])
-            {'one': ('sub.module', '/path/pkg/sub/module.py', ('one', 'two', 'three', ...)), ...}
+            >>> prep_package('pkg', 'path/pkg/', True, [], [])
+            {'one': ('pkg.module', 'pkg/module.py', ('one', ...), 123.45), ...}, {'pkg/': 123.45, ...}
     '''
     info = {}
     dir_mtime = {}
@@ -58,10 +49,6 @@ def prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_d
             >>> for name, file_path, mtime in prep_files('pkg', /path/pkg'):
             ...     name, file_path, mtime
             'sub.module' '/path/pkg/sub/module.py' 123.45
-
-        Note
-            - Any sub-directories with `__init__.py` file found is ignored!!!
-            as there should only be 1  `__init__.py` file at top level.
     '''
     skip = len(pkg_path) - len(pkg_name) - 1  # "/path/pkg" - "pkg" - 1
     for root, dirs, files in walk(pkg_path):
@@ -84,7 +71,7 @@ def prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_d
                     if (file_path := join(root, file)) in exclude_file:
                         continue
                     # only add directory that have `EXT_SUFFIX` in it.
-                    dir_mtime[root_path] = mtime_it(root_path)  # cached called
+                    dir_mtime[root_path] = stat(root_path).st_mtime  # cached called
                     mtime = stat(file_path).st_mtime
 
                     if file == '__init__.py':
@@ -119,5 +106,5 @@ def prep_variables(module_name, file_path):
     else:
         return None
 
-    for var in special(variables, error=True):
+    for var in special(variables):
         yield var, variables  # e.g. 'one', ('one', 'two')
