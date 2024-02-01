@@ -20,7 +20,7 @@ classifiers = ["Topic :: Software Development",
                "Programming Language :: Python :: 3.10",
                "Programming Language :: Python :: 3.11",
                "Programming Language :: Python :: 3.12",
-               "Development Status :: 4 - Beta"]
+               "Development Status :: 5 - Production/Stable"]
                # 1 - Planning",
                # 2 - Pre-Alpha",
                # 3 - Alpha",
