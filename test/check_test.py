@@ -8,12 +8,22 @@ def test_importer_called(tmpdir):
     pkg_path = '/path/pkg/'
     assert isinstance(IMPORTER_CALLED, dict)
     assert IMPORTER_CALLED.get(pkg_path, None) is None
-    importer_called(pkg_path)
+    assert importer_called(pkg_path) is None
     assert isinstance(IMPORTER_CALLED.get(pkg_path, None), set)
 
-    # error
+    # calling `importer()` again!
+    assert importer_called(pkg_path) is True
+
+    # calling `importer()` from sub directory while it was previously declared on higher path!
+    pkg_path = '/path/pkg/sub/pkg/'
     with pytest.raises(ImportError):
         importer_called(pkg_path)
+
+    # exclude
+    pkg_path1 = '/path/new_pkg/sub_dir/sub_1/'
+    pkg_path2 = '/path/new_pkg/sub_dir/'
+    IMPORTER_CALLED[pkg_path2] = {'/path/new_pkg/sub_dir/sub_1/'}
+    assert importer_called(pkg_path1) is None
 
 
 def test_exclude_file_check(tmpdir):
