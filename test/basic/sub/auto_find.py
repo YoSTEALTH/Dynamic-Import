@@ -1,5 +1,5 @@
 # This test is to auto import all the declared assign without the use of `__all__`.
-import html  # `html` should not be imported by `dynamic_import`
+import html  # noqa `html` should not be imported by `dynamic_import`
 
 
 def my_function():

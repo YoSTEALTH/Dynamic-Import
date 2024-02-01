@@ -22,7 +22,7 @@ def test_block_cache_enabled():
     # cache enabled
     with pytest.raises(ImportError, match="cannot import name '__block2__' from 'block_cache' .*"):
         from block_cache import __block2__  # noqa - not allowed
-    
+
     from block_cache import __block1__, block_cache_func  # noqa - allowed
     assert __block1__ == 11
     assert block_cache_func() is True
