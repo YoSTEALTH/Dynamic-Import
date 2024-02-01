@@ -25,7 +25,7 @@ def tmp_dir():
             - unlike pytest's `tmpdir`, `tmp_path`, ... `tmp_dir` generated
             files & directories are not deleted after 3 runs.
     '''
-    path = f'/{tempfile.gettempdir()}/pytest-of-{os.getlogin()}-holder'
+    path = f'{tempfile.gettempdir()}/pytest-of-{os.getlogin()}-holder'
     if not os.path.exists(path):
         os.mkdir(path)
     return pathlib.Path(tempfile.mkdtemp(dir=path))
