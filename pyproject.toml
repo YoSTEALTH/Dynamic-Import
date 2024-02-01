@@ -1,2 +1,39 @@
 [build-system]
 requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dynamic_import"
+dynamic = ["version"]
+authors = [{name="Ritesh"}]
+requires-python = ">=3.8"
+readme = {file="README.rst", content-type="text/x-rst"}
+license = {file="LICENSE.txt", content-type="text"}
+description = "Let Dynamic Import handle your projects(package) import needs. Enables you to dynamically(lazily) import module as needed on run-time."
+classifiers = ["Topic :: Software Development",
+               "License :: Public Domain",
+               "Intended Audience :: Developers",
+               "Operating System :: POSIX :: Linux",
+               "Programming Language :: Python :: 3.8",
+               "Programming Language :: Python :: 3.9",
+               "Programming Language :: Python :: 3.10",
+               "Programming Language :: Python :: 3.11",
+               "Programming Language :: Python :: 3.12",
+               "Development Status :: 4 - Beta"]
+               # 1 - Planning",
+               # 2 - Pre-Alpha",
+               # 3 - Alpha",
+               # 4 - Beta",
+               # 5 - Production/Stable",
+               # 6 - Mature",
+               # 7 - Inactive",
+
+[project.urls]
+Homepage = "https://github.com/YoSTEALTH/Dynamic-Import"
+Issues = "https://github.com/YoSTEALTH/Dynamic-Import/issues"
+
+[tool.setuptools.dynamic]
+version = {attr="dynamic_import.__version__"}
+
+[tool.setuptools]
+packages = ["dynamic_import"]
