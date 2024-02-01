@@ -11,8 +11,8 @@ def extract_variable(path):
     ''' Extract variable value from source file
 
         Type
-            path:     str
-            return:   Union[List[str], Tuple[str]
+            path:   str
+            return: Union[List[str], Tuple[str]
 
         Example
             # ./file_1.py
@@ -60,21 +60,21 @@ def extract_so_variable(module_name):
             return:      Union[List[str], Tuple[str]
 
         Example
-            # ./file_1.cpython-312-x86_64-linux-gnu.so
+            # /path/pkg/file_1.cpython-312-x86_64-linux-gnu.so
             # __all__ = ('one', 'two', 'three')
 
-            >>> extract_so_variable('file_1.cpython-312-x86_64-linux-gnu.so', '__all__')
-            ('one', 'two', 'three')
+            >>> extract_so_variable('pkg.file_1', '__all__')
+            ['one', 'two', 'three']
 
-            # ./file_2.cpython-312-x86_64-linux-gnu.so
+            # /path/pkg/file_2.cpython-312-x86_64-linux-gnu.so
             # __all__ = 'one'
-            >>> extract_so_variable('file_2.cpython-312-x86_64-linux-gnu.so', '__all__')
-            ('one',)
+            >>> extract_so_variable('pkg.file_2', '__all__')
+            ['one']
 
-            # ./file_3.cpython-312-x86_64-linux-gnu.so
+            # /path/pkg/file_3.cpython-312-x86_64-linux-gnu.so
             # `__all__` is not defined.
-            >>> extract_so_variable('file_3.cpython-312-x86_64-linux-gnu.so', '__all__')
-            ('variable', 'ClassName', 'function_name')
+            >>> extract_so_variable('pkg.file_3', '__all__')
+            ['variable', 'ClassName', 'function_name']
     '''
     module = import_module(module_name)
     # note: `import_module` loads `.so` file and gets the list of names. Currently there
