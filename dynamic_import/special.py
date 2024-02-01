@@ -9,18 +9,20 @@ def special(iterable, error=False):
 
         Example
             my_list = ['first', '__name__', 'last']
-            >>> for key in special(my_list):
+            >>> for name in special(my_list):
             ...     'first'
             ...     'last'
 
+            >>> for name in special(my_list, error=True):
+            ...     ValueError: special name like '__name__' is not supported
+
         Note
-            - does not allow special name that start and end with `__`
+            - special name are ignored by default. e.g: `__something__`
             - if `error=True` will raise exception if special name is found.
     '''
-    for i in iterable:
-        if (i[0:2] == '__' == i[-2:]) and (i[2] != '_' != i[-3]):
+    for name in iterable:
+        if (name[0:2] == '__' == name[-2:]) and (name[2] != '_' != name[-3]):
             if error:
-                raise ValueError(f'special name like {i!r} is not supported')
-            else:
-                continue
-        yield i
+                raise ValueError(f'special name like {name!r} is not supported')
+            continue
+        yield name
