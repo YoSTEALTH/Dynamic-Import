@@ -1,10 +1,8 @@
-from os import mkdir
+from os import mkdir, stat
 from sys import pycache_prefix, implementation
 from os.path import exists, join, dirname, splitext
 from importlib.machinery import BYTECODE_SUFFIXES
 from marshal import dump, load
-from .version import version
-from .prep import mtime_it
 
 
 __all__ = 'CACHE_DIR_PATH', 'MARSHAL_VERSION', 'VERSION_TAG', 'CACHE_EXT', \
@@ -49,7 +47,7 @@ def create_cache_dir(cache_path):
         return True
 
 
-def dump_cache(cache_path, data, recursive, exclude_file, exclude_dir, dir_mtime):
+def dump_cache(cache_path, data, recursive, exclude_file, exclude_dir, dir_mtime, version):
     ''' Create cached file
 
         Type
@@ -59,6 +57,7 @@ def dump_cache(cache_path, data, recursive, exclude_file, exclude_dir, dir_mtime
             exclude_file: List[str]
             exclude_dir:  List[str]
             dir_mtime:    Dict[str, float]
+            version:      str
             return:       None
 
         Example
@@ -68,7 +67,7 @@ def dump_cache(cache_path, data, recursive, exclude_file, exclude_dir, dir_mtime
         dump((version, recursive, exclude_file, exclude_dir, dir_mtime, data), file, MARSHAL_VERSION)
 
 
-def load_cache(cache_path, recursive, exclude_file, exclude_dir):
+def load_cache(cache_path, recursive, exclude_file, exclude_dir, version):
     ''' Load cached file
 
         Type
@@ -76,36 +75,33 @@ def load_cache(cache_path, recursive, exclude_file, exclude_dir):
             recursive:    bool
             exclude_file: List[str]
             exclude_dir:  List[str]
+            version:      str
             return:       any
 
         Example
             >>> load_cache('/path/pkg/__pycache__/__init__.importer-312.pyc')
     '''
-    with open(cache_path, 'rb') as file:
-        try:
+    try:
+        with open(cache_path, 'rb') as file:
             cached_version, cached_recursive, cached_exclude_file, cached_exclude_dir, dir_mtime, data = load(file)
-        except Exception:
-            return None
 
-        # check if Dynamic Import version has changed!
-        if version != cached_version:
-            return None
-        elif recursive != cached_recursive:
-            # check if `recursive` has changed!')
-            return None
-        elif exclude_file != cached_exclude_file:
-            # check if `exclude_file` has changed!
-            return None
-        elif exclude_dir != cached_exclude_dir:
-            # check if `exclude_dir` has changed!
-            return None
-        else:
-            # check if dir has changed.
-            for dir_path, mtime in dir_mtime.items():
-                if mtime != mtime_it(dir_path):
-                    return None
-            # check if each of the the files have changed.
-            for _, file_path, _, mtime in data.values():
-                if mtime != mtime_it(file_path):
-                    return None
-        return data
+            if version != cached_version:
+                return None  # check if Dynamic Import version has changed!
+            elif recursive != cached_recursive:
+                return None  # check if `recursive` has changed!'
+            elif exclude_file != cached_exclude_file:
+                return None  # check if `exclude_file` has changed!
+            elif exclude_dir != cached_exclude_dir:
+                return None  # check if `exclude_dir` has changed!
+            else:
+                # check if dir has changed.
+                for dir_path, mtime in dir_mtime.items():
+                    if mtime != stat(dir_path).st_mtime:
+                        return None
+                # check if each of the the files have changed.
+                for _, file_path, _, mtime in data.values():
+                    if mtime != stat(file_path).st_mtime:
+                        return None
+            return data
+    except Exception:
+        return None
