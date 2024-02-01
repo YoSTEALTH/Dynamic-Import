@@ -11,26 +11,36 @@ def importer_called(pkg_path):
 
         Type:
             pkg_path: str
-            return:   None
+            return:   Union[True, None]
 
         Example
             >>> importer_called('/path/pkg/')
             None
 
+            # if '/path/pkg/' already exists
+            >>> importer_called('/path/pkg/')
+            True
+
+            # if '/path/pkg/' already exists and calling `importer()` again from `/path/pkg/sub/pkg/`
+            >>> importer_called('/path/pkg/sub/pkg/')
+            ImportError
+
         Note
-            - will raises `ImportError()` if `importer()` was previously called.
+            - will raises `ImportError()` if `importer()` was previously called from parent module.
+            - use `importer(exclude_dir)` to exclude sub-dir if you want to call new `importer()` from sub-dir.
     '''
     if IMPORTER_CALLED:
         for parent, exclude in IMPORTER_CALLED.items():
             if pkg_path.startswith(parent):  # `pkg_path` is within parent directory.
+                if pkg_path == parent:
+                    return True  # to indicate module should already exist in `sys.modules`
                 for each in exclude:
                     # TODO: need to reverse check if sub-directory called `importer()` before parent dir.
                     # sub-directory excluded.
                     if pkg_path.startswith(each):
                         return None
                 # sub-directory not excluded.
-                parent_path = f'{parent}__init__.py'
-                _ = f'Can not call `importer()` from {pkg_path!r}, as it was previously called from {parent_path!r}. ' \
+                _ = f'Can not call `importer()` from {pkg_path!r}, as it was previously called from {parent!r}. ' \
                     'See `help(importer)` for more options.'
                 raise ImportError(_)
     IMPORTER_CALLED[pkg_path] = set()
