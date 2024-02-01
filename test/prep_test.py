@@ -92,11 +92,11 @@ def test_prep():
     assert set(dir_mtime) == find_dir_mtime
 
 
-def test_prep_variables(tmpdir):
-    pkg_path = tmpdir / 'no_pkg'
+def test_prep_variables(tmp_dir):
+    pkg_path = tmp_dir / 'no_pkg'
     pkg_path.mkdir()
     file_so = pkg_path / f'file{EXT_SUFFIX[1]}'
-    file_so.write(b'')
+    file_so.write_text('')
     with pytest.raises(ModuleNotFoundError, match="No module named 'no_pkg'"):
         list(prep_variables('no_pkg', str(file_so)))
     assert list(prep_variables('pkg', 'file.bad')) == []
