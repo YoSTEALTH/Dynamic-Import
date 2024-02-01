@@ -50,14 +50,9 @@ Usage
 .. code-block:: python
 
     # ./<package>/__init__.py
-
     from dynamic_import import importer
 
-
-    importer()  # only need to call `importer()` once inside main `__init__.py` file.
-
-    # note: `importer()` will scan all package directory and sub-directories for `.py, .so`
-    # files and cache import names for dynamic use.
+    importer()
 
 
 ``importer()`` options
@@ -85,17 +80,20 @@ Example
 .. code-block:: python
 
     # ./example/pkg/__init__.py
-
     from dynamic_import import importer
 
 
-    importer()
+    __version__ = '1.2.3'  # if need to use special name place it above `importer()`
+
+    importer()  # only need to call `importer()` once inside main `__init__.py` file.
+
+    # note: `importer()` will scan all package directory and sub-directories for `.py, .so`
+    # files and cache import names for dynamic use.
 
 
 .. code-block:: python
 
     # ./example/pkg/var.py
-
     import sys
 
     # just like normal import if `__all__` is not defined, `my_var` will be included.
@@ -107,11 +105,9 @@ Example
 .. code-block:: python
 
     # ./example/pkg/functions/myfunction.py
-
+    from pkg import my_var
     # all import names are available at higher level, 
     # no need for `from ..example.var import my_var`
-    from pkg import my_var
-
 
     __all__ = 'my_function'  # using just string for single name is ok
 
@@ -138,9 +134,8 @@ _______
 .. code-block:: python
 
     # ./example/calling.py
+    from pkg import my_var, my_function, MyClass  # import all 3 names regardless of where module is located
 
-    # you can import all 3 names regardless of where they are located as:
-    from pkg import my_var, my_function, MyClass
     # or 
     import pkg
 
@@ -161,7 +156,8 @@ Note
     - Cache can be disabled & removed by using ``importer(cache=False)``
     - Cached temporary files are stored in ``./__pycache__/__init__.importer-<python-version>.pyc``
     - You can move or rename any ``.py`` file within project directory or sub-directory and import will not break.
-    - Special name that start and end with ``"__"`` are not allowed, e.g: ``__something__``
+    - Special name e.g: ``__something__`` are ignored. If need to use special name place it 
+      above ``importer()`` e.g: ``__version__ = '1.2.3'; importer()``
     - Using ``from <package> import *`` is not recommended unless you want to load all the modules.
     - No need to have empty ``__init__.py`` inside sub-directories. Namespace + Package combined into one.
     - Calling ``dir(<package>)`` enables you to show all importable names without actually loading modules.
