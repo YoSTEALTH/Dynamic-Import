@@ -1,21 +1,16 @@
 from os import remove
 from sys import _getframe, modules
 from os.path import exists, split
-try:
-    from functools import cache
-except ImportError:  # account for python 3.8
-    from functools import lru_cache as cache
 from .module import Module
 from .check import importer_called, exclude_file_check, exclude_dir_check
 from .cache import pkg_cache_path, create_cache_dir, dump_cache, load_cache
 from .prep import prep_package
+from .version import version
 
 
 __all__ = 'importer',
-ERROR_MSG = '`importer()` must be called from within `__init__.py`'
 
 
-@cache
 def importer(*, cache=True, recursive=True, exclude_file=None, exclude_dir=None):
     ''' Automatically import modules dynamically.
 
@@ -54,50 +49,41 @@ def importer(*, cache=True, recursive=True, exclude_file=None, exclude_dir=None)
     '''
     caller = _getframe(1).f_globals  # get info of where `importer()` is being called from
     # note: avoiding using `inspect` module as it was adding 300-800% slowdown on run-time
-    try:
-        pkg_name = caller['__package__']
-        file_path = caller['__file__']
-    except KeyError:
-        raise ImportError(ERROR_MSG) from None
-    else:
-        pkg_dir, init_file = split(file_path)  # '/path/pkg', '__init__.py'
-        pkg_path = f'{pkg_dir}/'  # '/path/pkg' to '/path/pkg/'
+    pkg_name = caller['__package__']
+    file_path = caller['__file__']
+    pkg_dir, init_file = split(file_path)  # '/path/pkg', '__init__.py'
+    pkg_path = f'{pkg_dir}/'  # '/path/pkg' to '/path/pkg/'
 
     if not pkg_name or init_file != '__init__.py':
-        raise ImportError(ERROR_MSG)
+        raise ImportError('`importer()` must be called from within `__init__.py`')
 
     # check if `importer()` was previously called.
-    importer_called(pkg_path)
-    # exclude file
+    if importer_called(pkg_path):
+        return None
+        # Python tends to call `__init__.py` again if there are other defines 
+        # var, func, ... with `importer()` already being called. So its better
+        # to ignore since module is already created.
+
     exclude_file_path = exclude_file_check(exclude_file, pkg_name, pkg_path)  # type: list
-    # exclude sub directories
     exclude_dir_path = exclude_dir_check(exclude_dir, pkg_path, recursive)  # type: list
     cache_path = pkg_cache_path(pkg_path, init_file, 'importer')  # type: str
     if cache:
         while True:
             if exists(cache_path):
-                if info := load_cache(cache_path, recursive, exclude_file_path, exclude_dir_path):
+                if info := load_cache(cache_path, recursive, exclude_file_path, exclude_dir_path, version):
                     break
                 else:
                     remove(cache_path)
                     continue
             else:
-                try:
-                    info, dir_mtime = prep_package(pkg_name, pkg_path, recursive, exclude_file_path, exclude_dir_path)
-                    create_cache_dir(cache_path)
-                    dump_cache(cache_path, info, recursive, exclude_file_path, exclude_dir_path, dir_mtime)
-                    break
-                except Exception as e:
-                    if exists(cache_path):
-                        remove(cache_path)
-                    raise e from None
+                info, dir_mtime = prep_package(pkg_name, pkg_path, recursive, exclude_file_path, exclude_dir_path)
+                create_cache_dir(cache_path)
+                dump_cache(cache_path, info, recursive, exclude_file_path, exclude_dir_path, dir_mtime, version)
+                break
     else:
         if exists(cache_path):
             remove(cache_path)
         info, _ = prep_package(pkg_name, pkg_path, recursive, exclude_file_path, exclude_dir_path)
 
-    if (module := modules.pop(pkg_name, None)) is None:
-        error = f'`importer()` can not find package {pkg_name!r}'
-        raise ImportError(error)
-
+    module = modules.get(pkg_name)
     modules[pkg_name] = Module(pkg_name, info, module)
