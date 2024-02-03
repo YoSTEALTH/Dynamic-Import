@@ -20,12 +20,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install pip flake8 pytest
-          python -m pip install .
+          python -m pip install --upgrade pip flake8 pytest
+          python -m pip install --upgrade .
 
       - name: Install Cython
         if: ${{ matrix.python-version == '3.8' || matrix.python-version == '3.12'}}
-        run: python -m pip install cython
+        run: python -m pip install --upgrade cython
 
       - name: Lint with flake8
         run: |
