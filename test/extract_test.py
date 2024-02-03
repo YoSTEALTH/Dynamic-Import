@@ -74,7 +74,7 @@ def test_extract_so_variable(tmp_dir):
         # error - `__all__ = 123`
         with pytest.raises(TypeError, match=re.escape("can not parse `__all__` value in 'error'")):
             assert extract_so_variable('error') == ['hello_error']
-    elif r.returncode >= 0:  # bug
+    elif r.returncode > 0:  # bug
         pytest.skip('Cython bug!!!')
     else:  # error
         raise subprocess.CalledProcessError(returncode=r.returncode, cmd=r.args, stderr=r.stderr)
