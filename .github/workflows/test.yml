@@ -5,7 +5,6 @@ on: [push]  # yamllint disable-line rule:truthy
 
 jobs:
   build:
-
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -18,11 +17,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      # Runners
+
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip flake8 pytest
-          python -m pip install --upgrade .
+          python -m pip install pip flake8 pytest
+          python -m pip install .
+
+      - name: Install Cython
+        if: ${{ matrix.python-version == "3.8" || matrix.python-version == "3.12"}}
+        run: python -m pip install cython
+
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
