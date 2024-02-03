@@ -21,20 +21,20 @@ classifiers = ["Topic :: Software Development",
                "Programming Language :: Python :: 3.11",
                "Programming Language :: Python :: 3.12",
                "Development Status :: 5 - Production/Stable"]
-               # 1 - Planning",
-               # 2 - Pre-Alpha",
-               # 3 - Alpha",
-               # 4 - Beta",
-               # 5 - Production/Stable",
-               # 6 - Mature",
-               # 7 - Inactive",
+               # 1 - Planning
+               # 2 - Pre-Alpha
+               # 3 - Alpha
+               # 4 - Beta
+               # 5 - Production/Stable
+               # 6 - Mature
+               # 7 - Inactive
 
 [project.urls]
 Homepage = "https://github.com/YoSTEALTH/Dynamic-Import"
 Issues = "https://github.com/YoSTEALTH/Dynamic-Import/issues"
 
-[tool.setuptools.dynamic]
-version = {attr="dynamic_import.__version__"}
-
 [tool.setuptools]
 packages = ["dynamic_import"]
+
+[tool.setuptools.dynamic]
+version = {attr="dynamic_import.__version__"}

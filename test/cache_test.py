@@ -4,8 +4,6 @@ import os.path
 import time
 import shutil
 import pytest
-# import tempfile
-# import pathlib
 from dynamic_import.version import version
 from dynamic_import.cache import CACHE_DIR_PATH, MARSHAL_VERSION, VERSION_TAG, CACHE_EXT, \
                                  pkg_cache_path, dump_cache, load_cache, create_cache_dir
