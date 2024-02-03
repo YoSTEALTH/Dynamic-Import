@@ -51,7 +51,7 @@ def test_extract_so_variable(tmp_dir):
     # compile all `.so` file
     assert subprocess.run([cythonize, '--inplace', f'--parallel={jobs}',
                           str(one_pyx), str(two_pyx), str(three_pyx), str(error_pyx)],
-                          capture_output=True).returncode == 0
+                          capture_output=False).returncode == 0
 
     # add 'pkg' to sys path
     sys.path.append(str(pkg_path))
