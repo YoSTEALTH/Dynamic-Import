@@ -43,14 +43,14 @@ jobs:
           coverage combine
           coverage json
 
-      - name: "Create Coverage Badge"
-        uses: schneegans/dynamic-badges-action@v1.7.0
-        with:
-          auth: ${{ secrets.GIST_TOKEN }}
-          gistID: 8514634694bc53a216e37f1cf4122d6d
-          filename: coverage.json
-          label: Code Coverage
-          message: ${{ env.total }}%
-          minColorRange: 50
-          maxColorRange: 90
-          valColorRange: ${{ env.total }}
+      # - name: "Create Coverage Badge"
+      #   uses: schneegans/dynamic-badges-action@v1.7.0
+      #   with:
+      #     auth: ${{ secrets.GIST_TOKEN }}
+      #     gistID: 8514634694bc53a216e37f1cf4122d6d
+      #     filename: coverage.json
+      #     label: Code Coverage
+      #     message: ${{ env.total }}%
+      #     minColorRange: 50
+      #     maxColorRange: 90
+      #     valColorRange: ${{ env.total }}
