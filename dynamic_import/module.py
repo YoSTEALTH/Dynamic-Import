@@ -26,7 +26,12 @@ class Module(ModuleType):
         self.__PACKAGE__ = package
         self.__INFO__ = info
         # note: ^ this needs to mimic magic method name since those are made to raise error
-        self.__dict__.update(module.__dict__)
+
+        # only include special name from previous module, all other names should be
+        # imported through this `Module`
+        for key, value in module.__dict__.items():
+            if (key[0:2] == '__' == key[-2:]) and (key[2] != '_' != key[-3]):
+                self.__dict__[key] = value  # only update `__special__` names
         setattr(self, '__all__', (*self.__dict__, *self.__INFO__))
 
     def __dir__(self):
