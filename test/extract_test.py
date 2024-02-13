@@ -28,7 +28,7 @@ def test_extract_so_variable(tmp_dir):
     pkg_path = tmp_dir / 'pkg'
     pkg_path.mkdir()
 
-    # create '__init__.pyx'
+    # create '__init__.py'
     pyx = pkg_path / '__init__.py'
     pyx.write_text('')
 
