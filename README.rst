@@ -161,6 +161,8 @@ Note
     - Using ``from <package> import *`` is not recommended unless you want to load all the modules.
     - No need to have empty ``__init__.py`` inside sub-directories. Namespace + Package combined into one.
     - Calling ``dir(<package>)`` enables you to show all importable names without actually loading modules.
+    - Having module name and function name the same is ok! e.g. ``from pkg import my_fun`` while ``./pkg/my_fun.py``
+      and calling `my_fun()` will not conflict with module name. Module will still load in the background.
 
 
 Experimental
