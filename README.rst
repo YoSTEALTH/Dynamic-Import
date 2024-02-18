@@ -3,10 +3,13 @@
 Dynamic Import
 ==============
 
-Let Dynamic Import handle your projects(package) import needs. Enables you to dynamically(lazily) import module as needed within the project and for external usage on run-time.
+Let Dynamic Import handle your projects(package) import needs. Enables you to dynamically(lazily)
+import module as needed within the project and for external usage on run-time.
 
-* Place ``importer()`` into top ``__init__.py`` file and forget about where variable, function, class, ... are located.
-* Just call ``from <package> import <variable>`` while coding and when end-user calls from your project. All names are accessible at top level, easy to remember.
+* Place ``importer()`` into top ``__init__.py`` file and forget about where
+  variable, function, class, ... are located.
+* Just call ``from <package> import <variable>`` while coding and when end-user calls from your
+  project. All names are accessible at top level, easy to remember.
 * Move/rename file within your project? No problem, auto updates. 
 * Supports ``.py`` and ``.so`` (experimental)
 * Saves memory.
@@ -134,7 +137,8 @@ _______
 .. code-block:: python
 
     # ./example/calling.py
-    from pkg import my_var, my_function, MyClass  # import all 3 names regardless of where module is located
+    # import all 3 names regardless of where module is located
+    from pkg import my_var, my_function, MyClass
 
     # or 
     import pkg
@@ -151,24 +155,29 @@ Note
     - All sub-directories will be scanned for ``.py, .so`` file as ``recursive=True`` by default.
     - Use ``exclude_dir`` to list sub-directories you would like to avoid scanning.
     - You can still use normal static/relative import.
-    - For one word import name you can use string e.g. ``__all__ = 'function'`` vs ``__all__ = ('function',)``
+    - For one word import name you can use string
+      e.g. ``__all__ = 'function'`` vs ``__all__ = ('function',)``
     - All import names must be unique.
     - Cache can be disabled & removed by using ``importer(cache=False)``
     - Cached temporary files are stored in ``./__pycache__/__init__.importer-<python-version>.pyc``
-    - You can move or rename any ``.py`` file within project directory or sub-directory and import will not break.
+    - You can move or rename any ``.py`` file within project directory or sub-directory and 
+      import will not break.
     - Special name e.g: ``__something__`` are ignored. If need to use special name place it 
-      above ``importer()`` e.g: ``__version__ = '1.2.3'; importer()``
+      above ``importer()`` e.g.``__version__ = '1.2.3'; importer()``
     - Using ``from <package> import *`` is not recommended unless you want to load all the modules.
-    - No need to have empty ``__init__.py`` inside sub-directories. Namespace + Package combined into one.
-    - Calling ``dir(<package>)`` enables you to show all importable names without actually loading modules.
-    - Having module name and function name the same is ok! e.g. ``from pkg import my_fun`` while ``./pkg/my_fun.py``
-      and calling `my_fun()` will not conflict with module name. Module will still load in the background.
+    - No need to have empty ``__init__.py`` inside sub-directories. Its "like" Namespace + Package
+      combined into one! but not technically.
+    - Calling ``dir(<package>)`` enables you to show all importable names without loading modules.
+    - Having module name and function name the same is ok! e.g. ``from pkg import my_fun`` while
+      ``./pkg/my_fun.py`` and calling ``my_fun()`` will not conflict with module name. Module will
+      still load in the background. (experimental)
 
 
 Experimental
 ------------
-    - ``importer()`` also works with certain ``.cpython-<...>.so`` ``.abi3.so`` file (tested with cython created ``.so``).
-    - ``.so`` should not contain any function/class that auto-run on import, e.g: ``run_something()``
+    - ``importer()`` also works with certain ``.cpython-<...>.so`` ``.abi3.so`` file
+      (only tested with cython created ``*.so``).
+    - ``.so`` should not contain any function/class that auto-run on import e.g.``run_something()``
     - Visit `Liburing`_ to see project using Dynamic Import with ``.so`` files in action.
 
 
