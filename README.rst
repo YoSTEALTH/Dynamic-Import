@@ -168,13 +168,13 @@ Note
     - No need to have empty ``__init__.py`` inside sub-directories. Its "like" Namespace + Package
       combined into one! but not technically.
     - Calling ``dir(<package>)`` enables you to show all importable names without loading modules.
-    - Having module name and function name the same is ok! e.g. ``from pkg import my_fun`` while
-      ``./pkg/my_fun.py`` and calling ``my_fun()`` will not conflict with module name. Module will
-      still load in the background. (experimental)
 
 
 Experimental
 ------------
+    - Having module name and function name the same is ok! e.g. ``from pkg import my_fun`` while
+      ``./pkg/my_fun.py`` and calling ``my_fun()`` will not conflict with module name. Module will
+      still load in the background.
     - ``importer()`` also works with certain ``.cpython-<...>.so`` ``.abi3.so`` file
       (only tested with cython created ``*.so``).
     - ``.so`` should not contain any function/class that auto-run on import e.g.``run_something()``
