@@ -5,6 +5,7 @@ from .module import Module
 from .check import importer_called, exclude_file_check, exclude_dir_check
 from .cache import pkg_cache_path, create_cache_dir, dump_cache, load_cache
 from .prep import prep_package
+from .record import add_record
 from .version import version
 
 
@@ -79,6 +80,7 @@ def importer(*, cache=True, recursive=True, exclude_file=None, exclude_dir=None)
                 info, dir_mtime = prep_package(pkg_name, pkg_path, recursive, exclude_file_path, exclude_dir_path)
                 create_cache_dir(cache_path)
                 dump_cache(cache_path, info, recursive, exclude_file_path, exclude_dir_path, dir_mtime, version)
+                add_record(pkg_name, cache_path)
                 break
     else:
         if exists(cache_path):
