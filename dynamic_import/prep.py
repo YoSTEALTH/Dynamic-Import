@@ -26,7 +26,12 @@ def prep_package(pkg_name, pkg_path, recursive, exclude_file, exclude_dir):
     '''
     info = {}
     dir_mtime = {}
-    for module, file_path, mtime in prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_dir):
+    for module, file_path, mtime in prep_files(pkg_name,
+                                               pkg_path,
+                                               recursive,
+                                               dir_mtime,
+                                               exclude_file,
+                                               exclude_dir):
         for var, variables in prep_variables(module, file_path):
             info[var] = (module, file_path, variables, mtime)
     return info, dir_mtime
@@ -78,8 +83,8 @@ def prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_d
                         yield f'{module_name}', file_path, mtime
                     else:
                         yield f'{module_name}.{file.split(".")[0]}', file_path, mtime
-                        # ('pkg.sub.module', '/path/pkg/sub/module.py', 123.45)
-                        # ('pkg.sub.module', '/path/pkg/sub/module.cpython-312-x86_64-linux-gnu.so', 123.45)
+                        # ('pkg.sub.module', '/pkg/sub/module.py', 123.45)
+                        # ('pkg.sub.module', '/pkg/sub/module*.so', 123.45)
         if not recursive:
             break
 

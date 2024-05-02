@@ -25,7 +25,7 @@ class Module(ModuleType):
         super().__init__(package, None, *args, **kwargs)
         self.__PACKAGE__ = package
         self.__INFO__ = info
-        # note: ^ this needs to mimic magic method name since those are made to raise error
+        # note: ^ these needs to mimic magic method name since those are made to raise error
 
         # only include special name from previous module, all other names should be
         # imported through this `Module`

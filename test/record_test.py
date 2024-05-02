@@ -18,7 +18,7 @@ def test_add_record(tmp_dir):
     with open(record_file, 'rb') as file:
         assert file.read() == b'pkg/__pycache__/__init__.importer-313.pyc,,\r\n'
 
-    # try again, shouldn't change since cache path alrady exists.
+    # try again, shouldn't change since cache path already exists.
     add_record(pkg_name, cache_path)
     with open(record_file, 'rb') as file:
         assert file.read() == b'pkg/__pycache__/__init__.importer-313.pyc,,\r\n'
