@@ -5,8 +5,10 @@ from dynamic_import.special import special
 
 
 def test_special():
-    my_list = ['first', '__name__', '_name', 'name_', 'name', 'name__', '__name', '___name___', '', 'last']
-    result = ('first', '_name', 'name_', 'name', 'name__', '__name', '___name___', '', 'last')
+    my_list = ['first', '__name__', '_name', 'name_', 'name', 'name__', '__name', '___name___',
+               '', 'last', '__q__', '____', '___', '__', '_']
+    result = ('first', '_name', 'name_', 'name', 'name__', '__name', '___name___',
+              '', 'last', '____', '___', '__', '_')
     assert tuple(special(my_list)) == result
 
     with pytest.raises(ValueError, match="special name like '__name__' is not supported"):

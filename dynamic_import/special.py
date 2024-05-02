@@ -21,7 +21,7 @@ def special(iterable, error=False):
             - if `error=True` will raise exception if special name is found.
     '''
     for name in iterable:
-        if (name[0:2] == '__' == name[-2:]) and (name[2] != '_' != name[-3]):
+        if len(name) > 4 and (name[0:2] == '__' == name[-2:]) and (name[2] != '_' != name[-3]):
             if error:
                 raise ValueError(f'special name like {name!r} is not supported')
             continue
