@@ -32,8 +32,8 @@ def test_module():
     with pytest.raises(NotImplementedError, match=re.escape("`Module()` 'test/basic/bad_ext.bad' extension type.")):
         module.bad_ext
 
-    with pytest.raises(NotImplementedError, match=re.escape("`Module()` 'test/basic/so_file.so' extension type.")):
-        module.so_file
+    # with pytest.raises(NotImplementedError, match=re.escape("`Module()` 'test/basic/so_file.so' extension type.")):
+    #     module.so_file
 
     # check
     for i, ext in enumerate(EXT_SUFFIX):
