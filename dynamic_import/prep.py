@@ -6,8 +6,9 @@ from .special import special
 
 
 __all__ = 'EXT_SUFFIX', 'prep_package', 'prep_files', 'prep_variables'
-# e.g: ('.py', '.cpython-312-x86_64-linux-gnu.so', '.abi3.so')
-EXT_SUFFIX = ('.py', *(i for i in EXTENSION_SUFFIXES if i != '.so'))
+# e.g: ('.py', '.cpython-312-x86_64-linux-gnu.so', '.abi3.so', '.so')
+EXT_SUFFIX = ('.py', *EXTENSION_SUFFIXES)
+# EXT_SUFFIX = ('.py', *(i for i in EXTENSION_SUFFIXES if i != '.so'))
 
 
 def prep_package(pkg_name, pkg_path, recursive, exclude_file, exclude_dir):
@@ -106,7 +107,7 @@ def prep_variables(module_name, file_path):
     '''
     if file_path.endswith(EXT_SUFFIX[0]):  # .py
         variables = extract_variable(file_path)
-    elif file_path.endswith(EXT_SUFFIX[1]):  # .so
+    elif file_path.endswith(EXT_SUFFIX[1:]):  # .so
         variables = extract_so_variable(module_name)
     else:
         return None
