@@ -20,7 +20,7 @@ Ultimate worry free management comfort as your project grows from small to large
 Requires
 --------
 
-    - Python 3.8+
+    - Python 3.9+
     - Linux, MacOS
 
 
@@ -121,7 +121,7 @@ Example
 
 .. code-block:: python
 
-    # ./example/classes/__init__.py
+    # ./example/pkg/classes/__init__.py
 
     __all__ = ['MyClass']
 
@@ -175,7 +175,7 @@ Experimental
     - Having module name and function name the same is ok! e.g. ``from pkg import my_fun`` while
       ``./pkg/my_fun.py`` and calling ``my_fun()`` will not conflict with module name. Module will
       still load in the background.
-    - ``importer()`` also works with certain ``.cpython-<...>.so`` ``.abi3.so`` file
+    - ``importer()`` also works with certain ``.cpython-<...>.so``, ``.abi3.so`` & ``.so`` file
       (only tested with cython created ``*.so``).
     - ``.so`` should not contain any function/class that auto-run on import e.g.``run_something()``
     - Visit `Liburing`_ to see project using Dynamic Import with ``.so`` files in action.
