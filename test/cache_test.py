@@ -19,6 +19,22 @@ def test_pkg_cache_path(tmp_path):
         tmp_path / pkg_name / f'__pycache__/in.{func_name}-{VERSION_TAG}{CACHE_EXT}')
 
 
+def test_pkg_cache_path_prefix(monkeypatch):
+    monkeypatch.setattr(sys, 'pycache_prefix', '/tmp/pyc')
+    assert pkg_cache_path('/path/pkg/', '__init__.py', 'importer') == \
+        f'/tmp/pyc/path/pkg/__init__.importer-{VERSION_TAG}{CACHE_EXT}'
+    monkeypatch.setattr(sys, 'pycache_prefix', None)
+    assert pkg_cache_path('/path/pkg/', '__init__.py', 'importer') == \
+        f'/path/pkg/__pycache__/__init__.importer-{VERSION_TAG}{CACHE_EXT}'
+
+
+def test_create_cache_dir_nested(tmp_dir):
+    cache_file = str(tmp_dir / 'a/b/c/__init__.importer-313.pyc')
+    assert create_cache_dir(cache_file) is True
+    assert os.path.isdir(tmp_dir / 'a/b/c')
+    assert create_cache_dir(cache_file) is None  # already exists
+
+
 def test_defines():
     assert CACHE_DIR_PATH == '__pycache__'
     assert MARSHAL_VERSION == 4

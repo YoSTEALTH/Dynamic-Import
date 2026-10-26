@@ -18,8 +18,8 @@ def importer(*, cache=True, recursive=True, exclude_file=None, exclude_dir=None)
         Type
             cache:        bool
             recursive:    bool
-            exclude_file: Union[Tuple[str], str, None]
-            exclude_dir:  Union[Tuple[str], str, None]
+            exclude_file: tuple[str] | str | None
+            exclude_dir:  tuple[str] | str | None
             return:       None
 
         Example
@@ -33,7 +33,7 @@ def importer(*, cache=True, recursive=True, exclude_file=None, exclude_dir=None)
 
             # prevent scanning sub-directories
             >>> importer(recursive=False)
-            
+
             # exclude `.py, .so` file
             >>> importer(exclude_file='file.py')                            # single
             >>> importer(exclude_file=('file.py', 'sub-dir/file.py', ...))  # multiple
@@ -47,6 +47,8 @@ def importer(*, cache=True, recursive=True, exclude_file=None, exclude_dir=None)
                dynamically.
             - for production `importer(cache)` must be set to default `True` as cache is what makes the `importer()`
               fast and dynamic.
+            - if the cache file can not be read, written or removed (e.g. package installed into a read-only
+              `site-packages`) `importer()` silently runs without cache.
     '''
     caller = _getframe(1).f_globals  # get info of where `importer()` is being called from
     # note: avoiding using `inspect` module as it was adding 300-800% slowdown on run-time
@@ -58,34 +60,42 @@ def importer(*, cache=True, recursive=True, exclude_file=None, exclude_dir=None)
     if not pkg_name or init_file != '__init__.py':
         raise ImportError('`importer()` must be called from within `__init__.py`')
 
+    exclude_file_path = exclude_file_check(exclude_file, pkg_path)  # type: list
+    exclude_dir_path = exclude_dir_check(exclude_dir, pkg_path, recursive)  # type: list
+
     # check if `importer()` was previously called.
-    if importer_called(pkg_path):
+    if importer_called(pkg_path, recursive, exclude_dir_path):
         return None
-        # Python tends to call `__init__.py` again if there are other defines 
+        # Python tends to call `__init__.py` again if there are other defines
         # var, func, ... with `importer()` already being called. So its better
         # to ignore since module is already created.
 
-    exclude_file_path = exclude_file_check(exclude_file, pkg_name, pkg_path)  # type: list
-    exclude_dir_path = exclude_dir_check(exclude_dir, pkg_path, recursive)  # type: list
     cache_path = pkg_cache_path(pkg_path, init_file, 'importer')  # type: str
+    info = None
     if cache:
-        while True:
+        try:
             if exists(cache_path):
-                if info := load_cache(cache_path, recursive, exclude_file_path, exclude_dir_path, version):
-                    break
-                else:
-                    remove(cache_path)
-                    continue
-            else:
-                info, dir_mtime = prep_package(pkg_name, pkg_path, recursive, exclude_file_path, exclude_dir_path)
+                if (info := load_cache(cache_path, recursive, exclude_file_path, exclude_dir_path, version)) is None:
+                    remove(cache_path)  # stale cache
+        except OSError:
+            cache = False  # can not read or replace the cache file, carry on without it.
+    else:
+        try:
+            if exists(cache_path):
+                remove(cache_path)
+        except OSError:
+            pass
+
+    if info is None:
+        info, dir_mtime = prep_package(pkg_name, pkg_path, recursive, exclude_file_path, exclude_dir_path)
+        if cache:
+            try:
                 create_cache_dir(cache_path)
                 dump_cache(cache_path, info, recursive, exclude_file_path, exclude_dir_path, dir_mtime, version)
-                add_record(pkg_name, cache_path)
-                break
-    else:
-        if exists(cache_path):
-            remove(cache_path)
-        info, _ = prep_package(pkg_name, pkg_path, recursive, exclude_file_path, exclude_dir_path)
+                if cache_path.startswith(pkg_path):  # not relocated by `sys.pycache_prefix`
+                    add_record(pkg_name, cache_path)
+            except OSError:
+                pass  # read-only install (e.g. root owned `site-packages`), run without cache.
 
     module = modules.get(pkg_name)
     modules[pkg_name] = Module(pkg_name, info, module)

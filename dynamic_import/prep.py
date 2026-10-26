@@ -6,9 +6,11 @@ from .special import special
 
 
 __all__ = 'EXT_SUFFIX', 'prep_package', 'prep_files', 'prep_variables'
-# e.g: ('.py', '.cpython-312-x86_64-linux-gnu.so', '.abi3.so', '.so')
-EXT_SUFFIX = ('.py', *EXTENSION_SUFFIXES)
-# EXT_SUFFIX = ('.py', *(i for i in EXTENSION_SUFFIXES if i != '.so'))
+# e.g: ('.py', '.cpython-312-x86_64-linux-gnu.so', '.abi3.so')
+EXT_SUFFIX = ('.py', *(i for i in EXTENSION_SUFFIXES if i != '.so'))
+# note: plain `.so` is left out on purpose. Every shared library bundled with a package (`libfoo.so`)
+#       would otherwise be `import_module`'d during the scan and fail the whole package. Extension
+#       modules built by setuptools/cython always carry the tagged suffix.
 
 
 def prep_package(pkg_name, pkg_path, recursive, exclude_file, exclude_dir):
@@ -17,9 +19,9 @@ def prep_package(pkg_name, pkg_path, recursive, exclude_file, exclude_dir):
             pkg_name:     str
             pkg_path:     str
             recursive:    bool
-            exclude_file: List[str]
-            exclude_dir:  List[str]
-            return:     Tuple[Dict[str, Tuple[str, str, Union[List(str), Tuple[str]], float]], Dict[str, float]]
+            exclude_file: list[str]
+            exclude_dir:  list[str]
+            return:     tuple[dict[str, tuple[str, str, list[str] | tuple[str], float]], dict[str, float]]
 
         Example
             >>> prep_package('pkg', 'path/pkg/', True, [], [])
@@ -45,26 +47,28 @@ def prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_d
             pkg_name:     str
             pkg_path:     str
             recursive:    bool
-            dir_mtime:    Dict[str, float]
-            exclude_file: List[str]
-            exclude_dir:  List[str]
-            yield:        Tuple[str, Union[Tuple[str], List[str]], float]
+            dir_mtime:    dict[str, float]
+            exclude_file: list[str]
+            exclude_dir:  list[str]
+            yield:        tuple[str, tuple[str] | list[str], float]
             return:       None
 
         Example
             >>> for name, file_path, mtime in prep_files('pkg', /path/pkg'):
             ...     name, file_path, mtime
             'sub.module' '/path/pkg/sub/module.py' 123.45
+
+        Note
+            - every scanned directory is recorded in `dir_mtime` (even ones without a module yet),
+              so a module added to a data-only directory later still invalidates the cache.
+            - `__pycache__` and `exclude_dir` directories are not descended into.
     '''
     skip = len(pkg_path) - len(pkg_name) - 1  # "/path/pkg" - "pkg" - 1
     for root, dirs, files in walk(pkg_path):
-        # skip all `__pycache__` folder
-        if root.endswith('/__pycache__'):
-            continue
-
-        # skip excluded directory
-        if (root_path := root if root.endswith('/') else f'{root}/') in exclude_dir:
-            continue
+        root_path = root if root.endswith('/') else f'{root}/'
+        # do not descend into `__pycache__` or excluded directories.
+        dirs[:] = [d for d in dirs if d != '__pycache__' and f'{root_path}{d}/' not in exclude_dir]
+        dir_mtime[root_path] = stat(root_path).st_mtime  # a new file in this directory changes it
 
         if files:
             # e.g: "/path/pkg/sub/module/" to "pkg.sub.module"
@@ -76,8 +80,6 @@ def prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_d
                     # skip excluded file
                     if (file_path := join(root, file)) in exclude_file:
                         continue
-                    # only add directory that have `EXT_SUFFIX` in it.
-                    dir_mtime[root_path] = stat(root_path).st_mtime  # cached called
                     mtime = stat(file_path).st_mtime
 
                     if file == '__init__.py':
@@ -96,7 +98,7 @@ def prep_variables(module_name, file_path):
         Type
             module_name: str
             file_path:   str
-            yield:       Tuple[str, Union[List[str], Tuple[str]]]
+            yield:       tuple[str, list[str] | tuple[str]]
             return:      None
 
         Example

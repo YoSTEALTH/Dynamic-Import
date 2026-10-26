@@ -1,7 +1,11 @@
+from sys import modules
 from types import ModuleType
+from importlib import import_module
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader, ExtensionFileLoader
+from importlib._bootstrap import _ModuleLockManager as module_lock  # same per-module lock `import` uses
 from .prep import EXT_SUFFIX
+from .special import special
 
 
 __all__ = 'Module',
@@ -9,22 +13,28 @@ __all__ = 'Module',
 
 class Module(ModuleType):
 
-    __slots__ = '__PACKAGE__', '__INFO__'
+    __slots__ = '__PACKAGE__', '__INFO__', '__ORIGINAL__'
 
     def __init__(self, package, info, module, *args, **kwargs):
         ''' Dynamic import module
 
             Type
                 package: str
-                info:    Dict[str, Tuple[str, str, Union[List[str], Tuple[str]]]]
-                module:  sys
-                args:    Tuple[any]
-                kwargs:  Dict[str, any]
+                info:    dict[str, tuple[str, str, list[str] | tuple[str]]]
+                module:  ModuleType
+                args:    tuple[any]
+                kwargs:  dict[str, any]
                 return:  None
+
+            Note
+                - `module` is the package module that called `importer()`. Its `__init__.py` is still
+                  running at that point, so names defined after the `importer()` call are read from it
+                  lazily by `__getattr__` instead of executing `__init__.py` a second time.
         '''
         super().__init__(package, None, *args, **kwargs)
         self.__PACKAGE__ = package
         self.__INFO__ = info
+        self.__ORIGINAL__ = module
         # note: ^ these needs to mimic magic method name since those are made to raise error
 
         # only include special name from previous module, all other names should be
@@ -59,6 +69,12 @@ class Module(ModuleType):
 
                 >>> import pkg
                 >>> pkg.one()
+
+            Note
+                - the sub-module is registered in `sys.modules` before it runs, so a later
+                  `import pkg.sub.module` reuses it instead of executing the file again.
+                - loading is guarded by the import system's per-module lock, so two threads
+                  asking for the same name execute the sub-module only once.
         '''
         if name in self.__INFO__:
             module_name, module_path, variables, _ = self.__INFO__[name]
@@ -68,13 +84,41 @@ class Module(ModuleType):
                 loader = ExtensionFileLoader(module_name, module_path)
             else:
                 raise NotImplementedError(f'`Module()` {module_path!r} extension type.')
-            spec = spec_from_loader(loader.name, loader)
-            module = module_from_spec(spec)
-            loader.exec_module(module)
 
-            # add all the variables found in modules `__all__` into `self`
-            for var in variables:
-                setattr(self, var, getattr(module, var))
+            with module_lock(module_name):
+                if name in self.__dict__:
+                    return self.__dict__[name]  # another thread loaded it while we waited.
+
+                if module_name == self.__PACKAGE__:
+                    module = self.__ORIGINAL__  # defined in the package's own `__init__.py`
+                elif (module := modules.get(module_name)) is None:
+                    # like `import pkg.sub.mod`: parent packages must exist for later absolute imports.
+                    parent_name, _, child_name = module_name.rpartition('.')
+                    if (parent := modules.get(parent_name)) is None:
+                        parent = import_module(parent_name)
+                    spec = spec_from_loader(loader.name, loader)
+                    module = module_from_spec(spec)
+                    modules[module_name] = module
+                    spec._initializing = True  # makes a concurrent `import` of this module wait for us
+                    try:
+                        loader.exec_module(module)
+                    except BaseException:
+                        modules.pop(module_name, None)
+                        raise
+                    finally:
+                        spec._initializing = False
+                    if not isinstance(parent, Module):
+                        setattr(parent, child_name, module)  # `Module` parents expose names via `__INFO__`
+
+                # add all the variables found in modules `__all__` into `self` (special names are ignored)
+                for var in special(variables):
+                    try:
+                        value = getattr(module, var)
+                    except AttributeError:
+                        error = f'cannot import name {var!r} from {module_name!r} ({module_path}): ' \
+                                'it is listed in `__all__` but the module does not define it.'
+                        raise ImportError(error, name=module_name, path=module_path) from None
+                    setattr(self, var, value)
             return getattr(self, name)
         else:
             try:

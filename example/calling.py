@@ -1,6 +1,6 @@
 # you can import all 3 names regardless of where they are located as:
 from pkg import my_var, my_function, MyClass
-# or 
+# or
 import pkg
 
 print(my_var, pkg.my_var is my_var)

@@ -1,10 +1,33 @@
 from importlib import import_module
-from ast import FunctionDef, AsyncFunctionDef, ClassDef, Assign, parse, literal_eval
+from ast import FunctionDef, AsyncFunctionDef, ClassDef, Assign, AnnAssign, AugAssign, Add, Name, Tuple, List, \
+                parse, literal_eval
 from .special import special
 
 
 __all__ = 'extract_variable', 'extract_so_variable'
 LIST_TUPLE = (list, tuple)
+DEFINITION = (FunctionDef, AsyncFunctionDef, ClassDef)
+UNPACK = (Tuple, List)
+
+
+def all_value(node, path):
+    ''' Evaluate the literal assigned to `__all__`
+
+        Type
+            node:   ast.expr
+            path:   str
+            return: list[str] | tuple[str]
+    '''
+    try:
+        value = literal_eval(node)
+    except ValueError:
+        raise ValueError(f'`__all__` in {path!r} must be a literal list, tuple or string!') from None
+
+    if type(value) is str:
+        return (value,)
+    elif type(value) in LIST_TUPLE and all(type(each) is str for each in value):
+        return value
+    raise TypeError(f'`__all__` values in {path!r} is not string!')
 
 
 def extract_variable(path):
@@ -12,7 +35,7 @@ def extract_variable(path):
 
         Type
             path:   str
-            return: Union[List[str], Tuple[str]
+            return: list[str] | tuple[str]
 
         Example
             # ./file_1.py
@@ -29,27 +52,44 @@ def extract_variable(path):
             # `__all__` is not defined.
             >>> extract_variable('file_3.py')
             ('variable', 'ClassName', 'function_name', 'DEFINE')
+
+        Note
+            - `__all__` must be a literal `list`, `tuple` or `str`; `__all__ += [...]` is supported.
+            - without `__all__` every module-level `name = ...`, `name: type = ...`, `a, b = ...`,
+              `def`, `async def` and `class` is collected. Attribute and subscript assignments
+              (`obj.attr = 1`, `d['key'] = 1`) do not define a module name and are skipped.
+            - only top-level statements are scanned: names defined inside `if`, `try`, `with`,
+              `for`, ... blocks are not found. List them in `__all__` instead.
     '''
     with open(path, 'rb') as file:
         content = file.read()
 
     variables = []
+    found = None  # value of `__all__` if defined
     for body in parse(content, path).body:
-        if body.__class__ is Assign:
-            name = body.targets[0].id
-            if name == '__all__':
-                value = literal_eval(body.value)
-                _type = type(value)
-                if _type in LIST_TUPLE:
-                    return value
-                elif _type is str:
-                    return (value,)
+        node = body.__class__
+        if node is Assign:
+            for target in body.targets:
+                if target.__class__ is Name:
+                    if target.id == '__all__':
+                        found = all_value(body.value, path)
+                    else:
+                        variables.append(target.id)
+                elif target.__class__ in UNPACK:  # e.g: `x, y = 1, 2`
+                    variables.extend(elt.id for elt in target.elts if elt.__class__ is Name)
+        elif node is AnnAssign:  # e.g: `x: int = 1`
+            if body.value is not None and body.target.__class__ is Name:
+                if body.target.id == '__all__':
+                    found = all_value(body.value, path)
                 else:
-                    raise TypeError(f'`__all__` values in {path!r} is not string!')
-            variables.append(name)
-        elif body.__class__ in (FunctionDef, AsyncFunctionDef, ClassDef):
+                    variables.append(body.target.id)
+        elif node is AugAssign:  # e.g: `__all__ += ['x']`
+            if body.target.__class__ is Name and body.target.id == '__all__' and body.op.__class__ is Add:
+                value = all_value(body.value, path)
+                found = value if found is None else type(found)((*found, *value))
+        elif node in DEFINITION:
             variables.append(body.name)
-    return variables
+    return variables if found is None else found
 
 
 def extract_so_variable(module_name):
@@ -57,7 +97,7 @@ def extract_so_variable(module_name):
 
         Type
             module_name: str
-            return:      Union[List[str], Tuple[str]
+            return:      list[str] | tuple[str]
 
         Example
             # /path/pkg/file_1.cpython-312-x86_64-linux-gnu.so

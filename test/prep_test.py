@@ -8,7 +8,32 @@ def test_cache():
     assert next(suffix) == '.py'
     cpython = next(suffix)
     assert cpython.startswith('.cpython-') and cpython.endswith('.so')
-    assert next(suffix) == '.abi3.so'
+    abi3 = next(suffix)  # '.abi3.so', 3.15+: '.abi3-x86_64-linux-gnu.so' or '.abi3t-...'
+    assert abi3.startswith('.abi3') and abi3.endswith('.so')
+    assert '.so' not in EXT_SUFFIX  # bundled `libfoo.so` must not be treated as a module
+
+
+def test_prep_data_dir(tmp_dir):
+    # a directory without any module is still tracked, so a module added later invalidates the cache.
+    pkg_path = tmp_dir / 'pkg'
+    pkg_path.mkdir()
+    (pkg_path / '__init__.py').write_text('')
+    (pkg_path / 'data').mkdir()
+    (pkg_path / 'data' / 'file.txt').write_text('')
+    (pkg_path / 'data' / 'libfoo.so').write_text('')  # shared library, not a module
+    (pkg_path / '__pycache__').mkdir()
+    (pkg_path / '__pycache__' / 'x.py').write_text('')
+    (pkg_path / 'skip').mkdir()
+    (pkg_path / 'skip' / 'deep').mkdir()
+    (pkg_path / 'skip' / 'deep' / 'mod.py').write_text('x = 1')
+
+    info, dir_mtime = prep_package('pkg', f'{pkg_path}/', True, [], [f'{pkg_path}/skip/'])
+    assert info == {}
+    assert set(dir_mtime) == {f'{pkg_path}/', f'{pkg_path}/data/'}  # `__pycache__` and `skip/` not descended
+
+    (pkg_path / 'data' / 'mod.py').write_text('x = 1')
+    info, _ = prep_package('pkg', f'{pkg_path}/', True, [], [])
+    assert set(info) == {'x'}
 
 
 def test_prep():

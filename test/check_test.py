@@ -24,6 +24,33 @@ def test_importer_called():
     pkg_path2 = '/path/new_pkg/sub_dir/'
     IMPORTER_CALLED[pkg_path2] = {'/path/new_pkg/sub_dir/sub_1/'}
     assert importer_called(pkg_path1) is None
+    assert IMPORTER_CALLED[pkg_path1] == set()
+
+    # `exclude_dir` is recorded
+    assert importer_called('/path/excl/', True, ['/path/excl/sub/']) is None
+    assert IMPORTER_CALLED['/path/excl/'] == {'/path/excl/sub/'}
+    assert importer_called('/path/excl/sub/') is None
+
+
+def test_importer_called_not_recursive():
+    # parent with `recursive=False` never scanned the sub-directory, so sub-package may call `importer()`
+    assert importer_called('/path/flat/', recursive=False) is None
+    assert IMPORTER_CALLED['/path/flat/'] is None
+    assert importer_called('/path/flat/sub/') is None
+    assert importer_called('/path/flat/', recursive=False) is True  # called again
+    assert importer_called('/path/flat/sub/') is True
+
+
+def test_importer_called_sub_first():
+    # sub-directory called `importer()` before the parent
+    assert importer_called('/path/top/sub/') is None
+    with pytest.raises(ImportError, match=re.escape("previously called from sub-directory '/path/top/sub/'")):
+        importer_called('/path/top/')
+    assert '/path/top/' not in IMPORTER_CALLED
+    # ... fine if parent excludes it or is not recursive
+    assert importer_called('/path/top/', True, ['/path/top/sub/']) is None
+    assert importer_called('/path/top2/sub/') is None
+    assert importer_called('/path/top2/', recursive=False) is None
 
 
 def test_exclude_file_check(tmp_dir):
@@ -34,25 +61,25 @@ def test_exclude_file_check(tmp_dir):
 
     error = re.escape("`importer(exclude_file)` received absolute path '/file.py' must be relative path.")
     with pytest.raises(ValueError, match=error):
-        exclude_file_check('/file.py', pkg_name, pkg_path)
+        exclude_file_check('/file.py', pkg_path)
 
     sup = ', '.join(EXT_SUFFIX)
     error = re.escape(f"`importer(exclude_file)` received extension '.bad' not supported. Only allowed: {sup!r}")
     with pytest.raises(ValueError, match=error):
-        exclude_file_check('file.bad', pkg_name, pkg_path)
+        exclude_file_check('file.bad', pkg_path)
 
     error = re.escape(f"`importer(exclude_file)` received {str(file_path)!r} which is not an file or does not exist!")
     with pytest.raises(ValueError, match=error):
-        exclude_file_check('file.py', pkg_name, pkg_path)
+        exclude_file_check('file.py', pkg_path)
 
     pkg_dir.mkdir()           # create dir
     file_path.write_text('')  # create file
 
-    r = exclude_file_check('file.py', pkg_name, pkg_path)
+    r = exclude_file_check('file.py', pkg_path)
     assert isinstance(r, list)
     assert r == [str(file_path)]
-    assert exclude_file_check('./file.py', pkg_name, pkg_path) == [str(file_path)]
-    assert exclude_file_check(None, pkg_name, pkg_path) == []
+    assert exclude_file_check('./file.py', pkg_path) == [str(file_path)]
+    assert exclude_file_check(None, pkg_path) == []
 
 
 def test_exclude_dir_check(tmp_dir):
@@ -82,11 +109,11 @@ def test_exclude_dir_check(tmp_dir):
     sub = pkg_dir / 'sub'
     sub.mkdir()
     sub_sub_dir.mkdir()
-    IMPORTER_CALLED[pkg_path] = set()
 
     # single
     assert exclude_dir_check('sub-dir', pkg_path, recursive) == [f'{sub_dir}/']
     # multiple
     assert exclude_dir_check(('sub-dir', 'sub/sub-dir'), pkg_path, recursive) == [f'{sub_dir}/', f'{sub_sub_dir}/']
-    # holder
-    assert IMPORTER_CALLED[pkg_path] == {f'{sub_dir}/', f'{sub_sub_dir}/'}
+    # not recursive: nothing to exclude
+    assert exclude_dir_check(('sub-dir', 'sub/sub-dir'), pkg_path, False) == []
+    assert exclude_dir_check(None, pkg_path, recursive) == []

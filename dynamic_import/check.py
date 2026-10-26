@@ -3,15 +3,19 @@ from .prep import EXT_SUFFIX
 
 
 __all__ = 'IMPORTER_CALLED', 'importer_called', 'exclude_file_check', 'exclude_dir_check'
-IMPORTER_CALLED = {}  # e.g {'/path/pkg/': {'/path/pkg/sub-dir/'}}
+IMPORTER_CALLED = {}  # e.g {'/path/pkg/': {'/path/pkg/sub-dir/'}, '/path/flat/': None}
+# note: value is the set of excluded sub-directories, or `None` when `recursive=False`
+#       (the package did not scan any sub-directory, so all of them are free to call `importer()`).
 
 
-def importer_called(pkg_path):
-    ''' Check if `importer()` was previously called.
+def importer_called(pkg_path, recursive=True, exclude_dir=()):
+    ''' Check if `importer()` was previously called and register this call.
 
         Type:
-            pkg_path: str
-            return:   Union[True, None]
+            pkg_path:    str
+            recursive:   bool
+            exclude_dir: Iterable[str]
+            return:      True | None
 
         Example
             >>> importer_called('/path/pkg/')
@@ -26,39 +30,42 @@ def importer_called(pkg_path):
             ImportError
 
         Note
-            - will raises `ImportError()` if `importer()` was previously called from parent module.
-            - use `importer(exclude_dir)` to exclude sub-dir if you want to call new `importer()` from sub-dir.
+            - raises `ImportError()` if `importer()` was previously called from a parent package that
+              scanned this directory, or from a sub-directory this call would scan.
+            - use `importer(exclude_dir)` or `importer(recursive=False)` in the parent if you want to
+              call `importer()` from a sub-directory as well.
     '''
-    if IMPORTER_CALLED:
-        for parent, exclude in IMPORTER_CALLED.items():
-            if pkg_path.startswith(parent):  # `pkg_path` is within parent directory.
-                if pkg_path == parent:
-                    return True  # to indicate module should already exist in `sys.modules`
-                for each in exclude:
-                    # TODO: need to reverse check if sub-directory called `importer()` before parent dir.
-                    # sub-directory excluded.
-                    if pkg_path.startswith(each):
-                        return None
-                # sub-directory not excluded.
-                _ = f'Can not call `importer()` from {pkg_path!r}, as it was previously called from {parent!r}. ' \
-                    'See `help(importer)` for more options.'
-                raise ImportError(_)
-    IMPORTER_CALLED[pkg_path] = set()
+    if (exclude := IMPORTER_CALLED.get(pkg_path, False)) is not False:  # `None` is a valid value
+        return True  # to indicate module should already exist in `sys.modules`
+
+    for other, exclude in IMPORTER_CALLED.items():
+        if pkg_path.startswith(other):  # `pkg_path` is within `other` (parent) directory.
+            if exclude is None or any(pkg_path.startswith(each) for each in exclude):
+                continue  # parent did not scan sub-directories, or excluded this one.
+            _ = f'Can not call `importer()` from {pkg_path!r}, as it was previously called from {other!r}. ' \
+                'See `help(importer)` for more options.'
+            raise ImportError(_)
+        elif recursive and other.startswith(pkg_path):  # `other` (child) is within `pkg_path`.
+            if any(other.startswith(each) for each in exclude_dir):
+                continue  # child directory is excluded from this scan.
+            _ = f'Can not call `importer()` from {pkg_path!r}, as it was previously called from ' \
+                f'sub-directory {other!r}. See `help(importer)` for more options.'
+            raise ImportError(_)
+    IMPORTER_CALLED[pkg_path] = set(exclude_dir) if recursive else None
 
 
-def exclude_file_check(exclude_file, pkg_name, pkg_path):
+def exclude_file_check(exclude_file, pkg_path):
     '''
         Type
-            exclude_file: Union[Tuple[str], str, None]
-            pkg_name:     str
+            exclude_file: tuple[str] | str | None
             pkg_path:     str
-            return:       List[str]
+            return:       list[str]
 
         Example
-            >>> exclude_file_check('file.py', 'pkg', '/path/pkg/')
+            >>> exclude_file_check('file.py', '/path/pkg/')
             ['/path/pkg/file.py']
 
-            >>> exclude_file_check(('one.py', 'two.cpython-312-x86_64-linux-gnu.so'), 'pkg', '/path/pkg/')
+            >>> exclude_file_check(('one.py', 'two.cpython-312-x86_64-linux-gnu.so'), '/path/pkg/')
             ['/path/pkg/one.py', '/path/pkg/two.cpython-312-x86_64-linux-gnu.so']
     '''
     r = []
@@ -91,10 +98,10 @@ def exclude_file_check(exclude_file, pkg_name, pkg_path):
 def exclude_dir_check(exclude_dir, pkg_path, recursive):
     '''
         Type
-            exclude_dir: Union[Tuple[str], str, None]
+            exclude_dir: tuple[str] | str | None
             pkg_path:    str
             recursive:   bool
-            return:      List[str]
+            return:      list[str]
 
         Example
             >>> >>> exclude_dir_check('sub-dir', '/path/pkg/', True)
@@ -104,7 +111,7 @@ def exclude_dir_check(exclude_dir, pkg_path, recursive):
             ['/path/pkg/sub-dir/', /path/pkg/sub/sub-dir/']
 
         Note:
-            - Values are appended into `IMPORTER_CALLED`
+            - pass the result to `importer_called()` so it is recorded in `IMPORTER_CALLED`.
     '''
     r = []
     if not (recursive and exclude_dir):
@@ -129,6 +136,5 @@ def exclude_dir_check(exclude_dir, pkg_path, recursive):
             error = f'`importer(exclude_dir)` can not find directory: {each_dir!r}'
             raise ValueError(error)
 
-        IMPORTER_CALLED[pkg_path].add(each_dir)
         r.append(each_dir)
     return r

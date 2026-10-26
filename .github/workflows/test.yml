@@ -1,7 +1,11 @@
 ---
 name: Test
 
-on: [push, pull_request]  # yamllint disable-line rule:truthy
+on: [push, pull_request, workflow_dispatch]  # yamllint disable-line rule:truthy
+
+concurrency:  # a new push cancels the still running checks of the previous one
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -9,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14-dev"]
+        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
 
     steps:
       - uses: actions/checkout@v4
@@ -20,23 +24,23 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip flake8 pytest coverage
+          python -m pip install --upgrade pip ruff pytest coverage
           python -m pip install --upgrade .
 
-      - name: Install Cython
-        if: ${{ matrix.python-version == '3.8' || matrix.python-version == '3.12'}}
+      - name: Lint with ruff
         run: |
-          python -m pip install --upgrade cython
+          ruff check .
 
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with PyTest
         run: |
           coverage run -p -m pytest
+
+      - name: Build and check package
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.15'
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build --outdir build/dist
+          python -m twine check --strict build/dist/*
 
       - name: Coverage Report
         run: |

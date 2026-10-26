@@ -14,6 +14,49 @@ def test_extract_variable():
         extract_variable('test/basic/skip/bad_all.py')
 
 
+def test_extract_variable_targets(tmp_dir):
+    # 1.1 & 2.4: targets other than a plain name, annotated assignment, `if` blocks.
+    file = tmp_dir / 'mod.py'
+    file.write_text('import os\n'
+                    'x, y = 1, 2\n'
+                    '[p, q] = 3, 4\n'
+                    'a = b = 5\n'
+                    'os.environ["Z"] = "1"\n'
+                    'os.name2 = 1\n'
+                    'c: int = 6\n'
+                    'd: int\n'
+                    'if os.name:\n'
+                    '    hidden = 7\n'
+                    'def func(): pass\n'
+                    'async def afunc(): pass\n'
+                    'class Klass: pass\n')
+    # note: `import os` is not a definition, `hidden` inside `if` is not scanned.
+    assert extract_variable(str(file)) == ['x', 'y', 'p', 'q', 'a', 'b', 'c', 'func', 'afunc', 'Klass']
+
+
+def test_extract_variable_all(tmp_dir):
+    file = tmp_dir / 'mod.py'
+    file.write_text('__all__ = ["one"]\n__all__ += ["two"]\n__all__ += ("three",)\nother = 1\n')
+    assert extract_variable(str(file)) == ['one', 'two', 'three']
+
+    file.write_text('__all__ = ("one",)\n__all__ += ["two"]\n')
+    assert extract_variable(str(file)) == ('one', 'two')
+
+    file.write_text('__all__: list[str] = ["one"]\n')
+    assert extract_variable(str(file)) == ['one']
+
+    file.write_text('__all__ += ["one"]\n')  # no prior `__all__`
+    assert extract_variable(str(file)) == ['one']
+
+    file.write_text('__all__ = [name for name in dir()]\n')
+    with pytest.raises(ValueError, match=re.escape('must be a literal list, tuple or string!')):
+        extract_variable(str(file))
+
+    file.write_text('__all__ = ["one", 2]\n')
+    with pytest.raises(TypeError, match=re.escape('is not string!')):
+        extract_variable(str(file))
+
+
 if exec_path := os.path.dirname(sys.executable):
     cythonize = os.path.join(exec_path, 'cythonize')  # '/path/python3' to '/path/cythonize'
     skip_cython = not os.path.exists(cythonize)  # check if cython + cythonize is installed

@@ -1,41 +1,54 @@
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "dynamic_import"
-dynamic = ["version"]
-authors = [{name="Ritesh"}]
-requires-python = ">=3.9"
-readme = {file="README.rst", content-type="text/x-rst"}
-license = {file="LICENSE.txt", content-type="text"}
 description = "Let Dynamic Import handle your projects(package) import needs. Enables you to dynamically(lazily) import module as needed on run-time."
-classifiers = ["Topic :: Software Development",
-               "License :: Public Domain",
-               "Intended Audience :: Developers",
-               "Operating System :: POSIX :: Linux",
-               "Operating System :: MacOS",
-               "Programming Language :: Python :: 3.9",
-               "Programming Language :: Python :: 3.10",
-               "Programming Language :: Python :: 3.11",
-               "Programming Language :: Python :: 3.12",
-               "Programming Language :: Python :: 3.13",
-               "Programming Language :: Python :: 3.14",
-               "Development Status :: 5 - Production/Stable"]
-               # 1 - Planning
-               # 2 - Pre-Alpha
-               # 3 - Alpha
-               # 4 - Beta
-               # 5 - Production/Stable
-               # 6 - Mature
-               # 7 - Inactive
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.11"
+license = "CC0-1.0"
+license-files = ["LICENSE.txt"]
+authors = [{ name = "Ritesh" }]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Topic :: Software Development"
+    # 1 - Planning
+    # 2 - Pre-Alpha
+    # 3 - Alpha
+    # 4 - Beta
+    # 5 - Production/Stable
+    # 6 - Mature
+    # 7 - Inactive
+]
+dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/YoSTEALTH/Dynamic-Import"
 Issues = "https://github.com/YoSTEALTH/Dynamic-Import/issues"
 
+[dependency-groups]
+dev = ["ruff", "pytest", "build", "twine"]  # `pip install --group dev` (pip >= 25.1), used by `make venv`
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "UP"]  # UP: keep the code on Python 3.11+ idioms
+
+[tool.ruff.lint.per-file-ignores]
+"test/*" = ["E402", "F401", "F811"]  # tests import inside functions on purpose
+
 [tool.setuptools]
 packages = ["dynamic_import"]
 
 [tool.setuptools.dynamic]
-version = {attr="dynamic_import.__version__"}
+version = { attr = "dynamic_import.__version__" }
