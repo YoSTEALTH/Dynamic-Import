@@ -5,16 +5,8 @@ from os import altsep, makedirs, sep, stat
 from os.path import dirname, exists, join, splitext
 
 
-__all__ = (
-    'CACHE_DIR_PATH',
-    'MARSHAL_VERSION',
-    'VERSION_TAG',
-    'CACHE_EXT',
-    'pkg_cache_path',
-    'create_cache_dir',
-    'dump_cache',
-    'load_cache',
-)
+__all__ = 'CACHE_DIR_PATH', 'MARSHAL_VERSION', 'VERSION_TAG', 'CACHE_EXT', \
+          'pkg_cache_path', 'create_cache_dir', 'dump_cache', 'load_cache'
 CACHE_DIR_PATH = '__pycache__'
 MARSHAL_VERSION = 4
 VERSION_TAG = sys.implementation.cache_tag.split('-')[1]  # e.g: 'cpython-312' to '312'
@@ -23,25 +15,25 @@ SEPARATORS = sep + (altsep or '')  # '/', Windows: '\/'
 
 
 def pkg_cache_path(pkg_path, file_name, func_name):
-    '''Temp cached file path pattern
+    ''' Temp cached file path pattern
 
-    Type
-        pkg_path:  str
-        file_name: str
-        func_name: str
-        return:    str
+        Type
+            pkg_path:  str
+            file_name: str
+            func_name: str
+            return:    str
 
-    Example
-        >>> pkg_cache_path('/path/pkg/', '__init__.py', 'importer')
-        '/path/pkg/__pycache__/__init__.importer-312.pyc'
+        Example
+            >>> pkg_cache_path('/path/pkg/', '__init__.py', 'importer')
+            '/path/pkg/__pycache__/__init__.importer-312.pyc'
 
-        # with `sys.pycache_prefix = '/tmp/pyc'` (or `PYTHONPYCACHEPREFIX`)
-        >>> pkg_cache_path('/path/pkg/', '__init__.py', 'importer')
-        '/tmp/pyc/path/pkg/__init__.importer-312.pyc'
+            # with `sys.pycache_prefix = '/tmp/pyc'` (or `PYTHONPYCACHEPREFIX`)
+            >>> pkg_cache_path('/path/pkg/', '__init__.py', 'importer')
+            '/tmp/pyc/path/pkg/__init__.importer-312.pyc'
 
-    Note
-        - mirrors CPython: with `sys.pycache_prefix` set the absolute package path is
-          appended to the prefix, so each package still gets its own cache file.
+        Note
+            - mirrors CPython: with `sys.pycache_prefix` set the absolute package path is
+              appended to the prefix, so each package still gets its own cache file.
     '''
     name = splitext(file_name)[0]  # '__init__.py' to '__init__'
     new_file_name = f'{name}.{func_name}-{VERSION_TAG}{CACHE_EXT}'  # '__init__.importer-312.pyc'
@@ -53,14 +45,14 @@ def pkg_cache_path(pkg_path, file_name, func_name):
 
 
 def create_cache_dir(cache_path):
-    '''Create `__pycache__` directory
+    ''' Create `__pycache__` directory
 
-    Type:
-        cache_path: str
-        return:     True | None
+        Type:
+            cache_path: str
+            return:     True | None
 
-    Example
-        >>> create_cache_dir('/path/pkg/__pycache__/__init__.importer-312.pyc')
+        Example
+            >>> create_cache_dir('/path/pkg/__pycache__/__init__.importer-312.pyc')
     '''
     pkg_dir = dirname(cache_path)
     if not exists(pkg_dir):
@@ -69,38 +61,38 @@ def create_cache_dir(cache_path):
 
 
 def dump_cache(cache_path, data, recursive, exclude_file, exclude_dir, dir_mtime, version):
-    '''Create cached file
+    ''' Create cached file
 
-    Type
-        cache_path:   str
-        data:         any
-        recursive:    bool
-        exclude_file: list[str]
-        exclude_dir:  list[str]
-        dir_mtime:    dict[str, float]
-        version:      str
-        return:       None
+        Type
+            cache_path:   str
+            data:         any
+            recursive:    bool
+            exclude_file: list[str]
+            exclude_dir:  list[str]
+            dir_mtime:    dict[str, float]
+            version:      str
+            return:       None
 
-    Example
-        >>> dump_cache('/path/pkg/__pycache__/__init__.importer-312', ...)
+        Example
+            >>> dump_cache('/path/pkg/__pycache__/__init__.importer-312', ...)
     '''
     with open(cache_path, 'w+b') as file:
         dump((version, recursive, exclude_file, exclude_dir, dir_mtime, data), file, MARSHAL_VERSION)
 
 
 def load_cache(cache_path, recursive, exclude_file, exclude_dir, version):
-    '''Load cached file
+    ''' Load cached file
 
-    Type
-        cache_path:   str
-        recursive:    bool
-        exclude_file: list[str]
-        exclude_dir:  list[str]
-        version:      str
-        return:       any
+        Type
+            cache_path:   str
+            recursive:    bool
+            exclude_file: list[str]
+            exclude_dir:  list[str]
+            version:      str
+            return:       any
 
-    Example
-        >>> load_cache('/path/pkg/__pycache__/__init__.importer-312.pyc')
+        Example
+            >>> load_cache('/path/pkg/__pycache__/__init__.importer-312.pyc')
     '''
     try:
         with open(cache_path, 'rb') as file:
