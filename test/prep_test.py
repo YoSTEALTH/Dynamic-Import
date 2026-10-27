@@ -18,9 +18,9 @@ def test_cache():
         assert EXT_SUFFIX[-1] == '.so'
 
 
-def test_is_extension(tmp_dir):
+def test_is_extension(tmp_path):
     def ext(data, name='foo'):
-        path = tmp_dir / f'{name}.so'
+        path = tmp_path / f'{name}.so'
         path.write_bytes(data)
         return is_extension(str(path), name)
 
@@ -32,11 +32,14 @@ def test_is_extension(tmp_dir):
     assert not ext(b'...PyInit_foobar\0...')  # other module's init function
     assert not ext(b'...PyInit_foo...')  # not a whole symbol name
     assert not ext(b'\x7fELF...add\0...')  # plain shared library
+    assert ext(b'PyInit_foo\0')  # at the very start of the file
+    assert not ext(b'_foo\0...')  # no hook before the name
+    assert ext(b'...Other_foo\0...PyModExport_foo\0...')  # first hit is not a hook, a later one is
 
 
-def test_prep_data_dir(tmp_dir):
+def test_prep_data_dir(tmp_path):
     # a directory without any module is still tracked, so a module added later invalidates the cache.
-    pkg_path = tmp_dir / 'pkg'
+    pkg_path = tmp_path / 'pkg'
     pkg_path.mkdir()
     (pkg_path / '__init__.py').write_text('')
     (pkg_path / 'data').mkdir()
@@ -58,8 +61,8 @@ def test_prep_data_dir(tmp_dir):
     assert set(dir_mtime) == {join(pkg_path, ''), join(pkg_path, 'data', '')}
 
     (pkg_path / 'data' / 'mod.py').write_text('x = 1')
-    info, _ = prep_package('pkg', join(pkg_path, ''), True, [], [])
-    assert set(info) == {'x'}
+    info, _ = prep_package('pkg', join(pkg_path, ''), True, [], [join(pkg_path, 'skip', '')])
+    assert info['x'][1] == join(pkg_path, 'data', 'mod.py')
 
 
 def test_prep():
@@ -71,7 +74,7 @@ def test_prep():
                         ('DEFINE', 're_import')),
              'MyClass': ('basic.sub.auto_find',
                          'test/basic/sub/auto_find.py',
-                         ['my_function', 'var', 'MyClass', 'my_async_func']),
+                         ('my_function', 'var', 'MyClass', 'my_async_func')),
              'child': ('basic.sub.child.child',
                        'test/basic/sub/child/child.py',
                        ('child',)),
@@ -83,18 +86,18 @@ def test_prep():
                       ('four', 'five')),
              'my_async_func': ('basic.sub.auto_find',
                                'test/basic/sub/auto_find.py',
-                               ['my_function', 'var', 'MyClass', 'my_async_func']),
+                               ('my_function', 'var', 'MyClass', 'my_async_func')),
              'my_function': ('basic.sub.auto_find',
                              'test/basic/sub/auto_find.py',
-                             ['my_function', 'var', 'MyClass', 'my_async_func']),
+                             ('my_function', 'var', 'MyClass', 'my_async_func')),
              'one': ('basic.one', 'test/basic/one.py', ('one',)),
              're_import': ('basic', 'test/basic/__init__.py',
                            ('DEFINE', 're_import')),
-             'three': ('basic.sub.three', 'test/basic/sub/three.py', ['three']),
+             'three': ('basic.sub.three', 'test/basic/sub/three.py', ('three',)),
              'two': ('basic.two', 'test/basic/two.py', ('two',)),
              'var': ('basic.sub.auto_find',
                      'test/basic/sub/auto_find.py',
-                     ['my_function', 'var', 'MyClass', 'my_async_func'])
+                     ('my_function', 'var', 'MyClass', 'my_async_func'))
              }
     match = {k: (module, native(path), variables) for k, (module, path, variables) in match.items()}
     find_dir_mtime = set(map(native, ('test/basic/',
@@ -145,11 +148,20 @@ def test_prep():
     assert set(dir_mtime) == find_dir_mtime
 
 
-def test_prep_variables(tmp_dir):
-    pkg_path = tmp_dir / 'no_pkg'
+def test_prep_variables(tmp_path):
+    pkg_path = tmp_path / 'no_pkg'
     pkg_path.mkdir()
     file_so = pkg_path / f'file{EXT_SUFFIX[1]}'
     file_so.write_text('')
     with pytest.raises(ModuleNotFoundError, match="No module named 'no_pkg'"):
         list(prep_variables('no_pkg', str(file_so)))
-    assert list(prep_variables('pkg', 'file.bad')) == []
+
+
+def test_prep_sorted(tmp_path):
+    # 2.15: directories and files are scanned in sorted order, not file-system order.
+    pkg_path = tmp_path / 'pkg'
+    for rel in ('z.py', 'a.py', 'm.py', 'b/z.py', 'b/a.py', 'a_dir/x.py'):
+        (pkg_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (pkg_path / rel).write_text(f'name_{rel[:-3].replace("/", "_")} = 1\n')
+    info, _ = prep_package('pkg', join(pkg_path, ''), True, [], [])
+    assert [module for module, *_ in info.values()] == ['pkg.a', 'pkg.m', 'pkg.z', 'pkg.a_dir.x', 'pkg.b.a', 'pkg.b.z']

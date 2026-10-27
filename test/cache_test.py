@@ -1,3 +1,4 @@
+import marshal
 import os
 import os.path
 import shutil
@@ -40,11 +41,11 @@ def test_pkg_cache_path_prefix(monkeypatch):
     assert pkg_cache_path(native('/path/pkg/'), '__init__.py', 'importer') == native(f'/path/pkg/__pycache__/{name}')
 
 
-def test_create_cache_dir_nested(tmp_dir):
-    cache_file = str(tmp_dir / 'a/b/c/__init__.importer-313.pyc')
-    assert create_cache_dir(cache_file) is True
-    assert os.path.isdir(tmp_dir / 'a/b/c')
-    assert create_cache_dir(cache_file) is None  # already exists
+def test_create_cache_dir_nested(tmp_path):
+    cache_file = str(tmp_path / 'a/b/c/__init__.importer-313.pyc')
+    assert create_cache_dir(cache_file) is None
+    assert os.path.isdir(tmp_path / 'a/b/c')
+    assert create_cache_dir(cache_file) is None  # already exists, no error
 
 
 def test_defines():
@@ -52,19 +53,19 @@ def test_defines():
     assert MARSHAL_VERSION == 4
 
 
-def test_dump_load(tmp_dir):
+def test_dump_load(tmp_path):
     recursive = True
     exclude_dir = []
     exclude_file = []
 
-    tmp_one = tmp_dir / 'one.py'
+    tmp_one = tmp_path / 'one.py'
     tmp_one.write_text('hello ')
 
-    dir_mtime = {str(tmp_dir): os.stat(tmp_dir).st_mtime}
+    dir_mtime = {str(tmp_path): os.stat(tmp_path).st_mtime}
     info = {'one': ('a', str(tmp_one), ('a', 'b', 'c'), os.stat(tmp_one).st_mtime)}
-    cache_file = pkg_cache_path(tmp_dir, '__init__.py', 'importer')
+    cache_file = pkg_cache_path(tmp_path, '__init__.py', 'importer')
 
-    assert create_cache_dir(cache_file) is True
+    assert create_cache_dir(cache_file) is None
     assert dump_cache(cache_file, info, recursive, exclude_file, exclude_dir, dir_mtime, version) is None
 
     # Exception
@@ -74,10 +75,10 @@ def test_dump_load(tmp_dir):
     assert load_cache(cache_file, recursive, exclude_file, exclude_dir, 123.45) is None
 
     # exclude_file != cached_exclude_file
-    assert load_cache(cache_file, recursive, ['two'], [str(tmp_dir / 'two')], version) is None
+    assert load_cache(cache_file, recursive, ['two'], [str(tmp_path / 'two')], version) is None
 
     # exclude_dir != cached_exclude_dir
-    assert load_cache(cache_file, recursive, exclude_file, [str(tmp_dir / 'two')], version) is None
+    assert load_cache(cache_file, recursive, exclude_file, [str(tmp_path / 'two')], version) is None
 
     # recursive != cached_recursive
     assert load_cache(cache_file, False, exclude_file, exclude_dir, version) is None
@@ -90,9 +91,22 @@ def test_dump_load(tmp_dir):
     # mtime != mtime_it(dir_path)
     time.sleep(0.05)
     # check if dir time as changed by adding a file
-    empty_file = tmp_dir / 'empty_file.ext'
+    empty_file = tmp_path / 'empty_file.ext'
     empty_file.write_text('')
     assert load_cache(cache_file, recursive, exclude_file, exclude_dir, version) is None
+
+
+def test_dump_atomic(tmp_path):
+    # 2.18: written through a temporary file, which is removed if the write fails.
+    cache_file = str(tmp_path / 'cache.pyc')
+    dump_cache(cache_file, {'one': 0}, True, [], [], {}, version)
+    dump_cache(cache_file, {'one': 1}, True, [], [], {}, version)  # replaces the existing file
+    assert os.listdir(tmp_path) == ['cache.pyc']
+    with pytest.raises(ValueError):
+        dump_cache(cache_file, {'one': object()}, True, [], [], {}, version)  # `marshal` can not write it
+    assert os.listdir(tmp_path) == ['cache.pyc']
+    with open(cache_file, 'rb') as file:
+        assert marshal.load(file)[-1] == {'one': 1}  # last good cache left intact
 
 
 def test_define():
@@ -112,42 +126,20 @@ def test_conflict():
         from basic import does_not_exist  # noqa
 
 
-def test_dynamic(tmp_dir):
-    # part-1
-    # ------
-    pkg_name = 'dynamic_pkg'
-    pkg_dir = tmp_dir / 'holder'
-    pkg_dir.mkdir()
-    # tmp_init = pkg_dir / '__init__.py'
-    # tmp_init.write(b'')
-
-    pkg_path = pkg_dir / f'{pkg_name}/'
-    pkg_path.mkdir()
-
-    init_path = pkg_dir / pkg_name / '__init__.py'
+def test_dynamic(make_pkg, monkeypatch):
     # cache enabled
-    init_path.write_text('from dynamic_import import importer\nimporter(cache=True)\n')
-
-    one_path = pkg_dir / pkg_name / 'one.py'
-    one_path.write_text('ONE = 1\n')
-
-    sys.path.append(str(pkg_dir))
+    pkg = make_pkg('dynamic_pkg', {'__init__.py': 'from dynamic_import import importer\nimporter(cache=True)\n',
+                                   'one.py': 'ONE = 1\n'})
     from dynamic_pkg import ONE
     assert ONE == 1
+    cache_file = pkg_cache_path(join(pkg, ''), '__init__.py', 'importer')
+    assert os.path.exists(cache_file)
 
-    # part-2
-    # ------
-    # cache disabled
-    init_path.write_text('from dynamic_import import importer\nimporter(cache=False)\n')
-
-    # copy into new folder
-    new_pkg_dir = tmp_dir / 'new_holder'
-    old_pkg_path = new_pkg_dir / f'{pkg_name}/'
-    new_pkg_path = new_pkg_dir / f'new_{pkg_name}/'
-
-    shutil.copytree(pkg_dir, new_pkg_dir)
-    os.rename(old_pkg_path, new_pkg_path)
-
-    sys.path.append(str(new_pkg_dir))
+    # copy (old cache file included) into a renamed package with cache disabled
+    new_pkg = pkg.parent.parent / 'new_holder' / 'new_dynamic_pkg'
+    shutil.copytree(pkg, new_pkg)
+    (new_pkg / '__init__.py').write_text('from dynamic_import import importer\nimporter(cache=False)\n')
+    monkeypatch.syspath_prepend(str(new_pkg.parent))
     from new_dynamic_pkg import ONE
     assert ONE == 1
+    assert not os.path.exists(pkg_cache_path(join(new_pkg, ''), '__init__.py', 'importer'))  # removed

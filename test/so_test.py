@@ -190,11 +190,11 @@ def test_so_built_all_forms(make_pkg):
     assert hello_two is sys.modules['so_built_pkg.two'].hello_two
 
 
-def test_so_built_extract(tmp_dir, monkeypatch):
-    build_so(tmp_dir, 'so_extract_one')
-    build_so(tmp_dir, 'so_extract_two', 'Py_BuildValue("(ss)", "hello_so_extract_two", "extra")')
-    build_so(tmp_dir, 'so_extract_error', 'PyLong_FromLong(123)')
-    monkeypatch.syspath_prepend(str(tmp_dir))
+def test_so_built_extract(tmp_path, monkeypatch):
+    build_so(tmp_path, 'so_extract_one')
+    build_so(tmp_path, 'so_extract_two', 'Py_BuildValue("(ss)", "hello_so_extract_two", "extra")')
+    build_so(tmp_path, 'so_extract_error', 'PyLong_FromLong(123)')
+    monkeypatch.syspath_prepend(str(tmp_path))
     assert extract_so_variable('so_extract_one') == ['hello_so_extract_one']
     assert extract_so_variable('so_extract_two') == ['hello_so_extract_two', 'extra']
     with pytest.raises(TypeError, match=re.escape("can not parse `__all__` value in 'so_extract_error'")):
@@ -238,3 +238,12 @@ def test_so_bare_module_and_library(make_pkg):
         assert f'so_bare_pkg.{lib}' not in sys.modules
     assert so_bare_pkg.hello_libring('World') == 'Hello World!'
     assert sys.modules['so_bare_pkg.libring'].__file__.endswith(os.sep + 'libring.so')
+
+
+def test_so_next_to_source(make_pkg):
+    # 2.15: `ext.py` and `ext.<tag>.so` are one module, not a duplicate name; like `import`, the `.so` wins.
+    pkg = make_pkg('so_source_pkg', {'ext.py': 'def hello_ext(name):\n    return "from source"\n'})
+    build_so(pkg, 'ext')
+    from so_source_pkg import hello_ext
+    assert hello_ext('World') == 'Hello World!'
+    assert sys.modules['so_source_pkg.ext'].__file__.endswith(SUFFIX)

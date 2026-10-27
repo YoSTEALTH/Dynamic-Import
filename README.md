@@ -94,7 +94,7 @@ importer()  # only need to call `importer()` once inside main `__init__.py` file
 import sys
 
 # just like normal import if `__all__` is not defined, `my_var` will be included.
-# Also `sys` will not be included.
+# Also `sys` and names starting with `_` will not be included.
 
 my_var = sys.version_info.major
 ```
@@ -148,14 +148,15 @@ print(dir(pkg))                     # ['my_var', 'my_function', 'MyClass', ...]
 - You can still use normal static/relative import.
 - For one word import name you can use string
   e.g. `__all__ = 'function'` vs `__all__ = ('function',)`
-- All import names must be unique.
+- All import names must be unique: two modules exporting the same name raise `ImportError` naming both
+  files. Use `__all__` to choose what a module exports.
 - Cache can be disabled & removed by using `importer(cache=False)`
 - Cached temporary files are stored in `./__pycache__/__init__.importer-<python-version>.pyc`
   (or under `sys.pycache_prefix` when set). If the cache can not be written (read-only install)
   `importer()` runs without cache.
 - `__all__` must be a literal list, tuple or string; `__all__ += [...]` is fine. Without `__all__`
   only top-level assignments, `def` and `class` are found; names defined inside `if`/`try`
-  blocks are not.
+  blocks are not, and names starting with `_` are private (like `from module import *`).
 - A lazily loaded module is registered in `sys.modules` so `import pkg.sub.module` reuses it.
 - A parent `importer(recursive=False)` lets sub-packages call `importer()` themselves.
 - You can move or rename any `.py` file within project directory or sub-directory and
@@ -166,13 +167,20 @@ print(dir(pkg))                     # ['my_var', 'my_function', 'MyClass', ...]
 - No need to have empty `__init__.py` inside sub-directories. Its "like" Namespace + Package
   combined into one! but not technically.
 - Calling `dir(<package>)` enables you to show all importable names without loading modules.
+- Thread safe, free-threaded Python (`3.14t`) included: lazy loading takes the same per-module lock as
+  `import`, so threads asking for names of the same module run it only once, and a circular import
+  between threads is reported as a deadlock just like a normal `import`.
+- Process safe: the cache file is written to a temporary file and then renamed into place, so processes
+  starting at the same time (e.g. server workers) never read a half-written cache.
 
 
 ## Experimental
 
 - Having module name and function name the same is ok! e.g. `from pkg import my_fun` while
   `./pkg/my_fun.py` and calling `my_fun()` will not conflict with module name. Module will
-  still load in the background.
+  still load in the background. `pkg.my_fun` stays the function even after `import pkg.my_fun`;
+  the module itself is `importlib.import_module('pkg.my_fun')`.
+- A module found as both `mod.py` and `mod.<tag>.so` is one module: like `import`, the `.so` is used.
 - `importer()` also works with every extension module suffix Python supports
   (`importlib.machinery.EXTENSION_SUFFIXES`): `.cpython-<...>.so`, `.abi3<...>.so`, plain `.so` on Linux/macOS,
   `.cp<...>.pyd` & `.pyd` on Windows. A plain `.so` without a Python init function (a bundled `libfoo.so`

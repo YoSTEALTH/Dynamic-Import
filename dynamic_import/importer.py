@@ -1,5 +1,5 @@
 from os import altsep, remove, sep
-from os.path import exists, join, split
+from os.path import join, split
 from sys import _getframe, modules
 from .cache import create_cache_dir, dump_cache, load_cache, pkg_cache_path
 from .check import exclude_dir_check, exclude_file_check, importer_called
@@ -75,18 +75,13 @@ def importer(*, cache=True, recursive=True, exclude_file=None, exclude_dir=None)
     cache_path = pkg_cache_path(pkg_path, init_file, 'importer')  # type: str
     info = None
     if cache:
-        try:
-            if exists(cache_path):
-                if (info := load_cache(cache_path, recursive, exclude_file_path, exclude_dir_path, version)) is None:
-                    remove(cache_path)  # stale cache
-        except OSError:
-            cache = False  # can not read or replace the cache file, carry on without it.
+        # `None` if missing, unreadable or stale: rescan, `dump_cache()` replaces the old file.
+        info = load_cache(cache_path, recursive, exclude_file_path, exclude_dir_path, version)
     else:
         try:
-            if exists(cache_path):
-                remove(cache_path)
+            remove(cache_path)
         except OSError:
-            pass
+            pass  # no cache file, or can not remove it.
 
     if info is None:
         info, dir_mtime = prep_package(pkg_name, pkg_path, recursive, exclude_file_path, exclude_dir_path)

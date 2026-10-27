@@ -13,7 +13,6 @@ from ast import (
     parse,
 )
 from importlib import import_module
-from .special import special
 
 
 __all__ = 'extract_variable', 'extract_so_variable'
@@ -70,6 +69,7 @@ def extract_variable(path):
             - without `__all__` every module-level `name = ...`, `name: type = ...`, `a, b = ...`,
               `def`, `async def` and `class` is collected. Attribute and subscript assignments
               (`obj.attr = 1`, `d['key'] = 1`) do not define a module name and are skipped.
+            - without `__all__` a name starting with `_` is private and not collected, like `from mod import *`.
             - only top-level statements are scanned: names defined inside `if`, `try`, `with`,
               `for`, ... blocks are not found. List them in `__all__` instead.
     '''
@@ -101,7 +101,9 @@ def extract_variable(path):
                 found = value if found is None else type(found)((*found, *value))
         elif node in DEFINITION:
             variables.append(body.name)
-    return variables if found is None else found
+    if found is None:
+        return [i for i in variables if i[0] != '_']  # like `from mod import *` without `__all__`
+    return found
 
 
 def extract_so_variable(module_name):
@@ -127,6 +129,9 @@ def extract_so_variable(module_name):
             # `__all__` is not defined.
             >>> extract_so_variable('pkg.file_3', '__all__')
             ['variable', 'ClassName', 'function_name']
+
+        Note
+            - without `__all__` a name starting with `_` is private and not collected, like `from mod import *`.
     '''
     module = import_module(module_name)
     # note: `import_module` loads `.so` file and gets the list of names. Currently there
@@ -142,6 +147,5 @@ def extract_so_variable(module_name):
         else:
             raise TypeError(f'can not parse `__all__` value in {module_name!r}')
     else:
-        for var in special(dir(module)):
-            variables.append(var)
+        variables.extend(i for i in dir(module) if i[0] != '_')  # like `from mod import *` without `__all__`
     return variables

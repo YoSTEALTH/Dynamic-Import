@@ -1,8 +1,8 @@
 import sys
 from importlib.machinery import BYTECODE_SUFFIXES
 from marshal import dump, load
-from os import altsep, makedirs, sep, stat
-from os.path import dirname, exists, join, splitext
+from os import altsep, getpid, makedirs, remove, replace, sep, stat
+from os.path import dirname, join, splitext
 
 
 __all__ = 'CACHE_DIR_PATH', 'MARSHAL_VERSION', 'VERSION_TAG', 'CACHE_EXT', \
@@ -49,15 +49,12 @@ def create_cache_dir(cache_path):
 
         Type:
             cache_path: str
-            return:     True | None
+            return:     None
 
         Example
             >>> create_cache_dir('/path/pkg/__pycache__/__init__.importer-312.pyc')
     '''
-    pkg_dir = dirname(cache_path)
-    if not exists(pkg_dir):
-        makedirs(pkg_dir, exist_ok=True)  # `exist_ok`: another process may have won the race.
-        return True
+    makedirs(dirname(cache_path), exist_ok=True)  # `exist_ok`: already there, or another process won the race.
 
 
 def dump_cache(cache_path, data, recursive, exclude_file, exclude_dir, dir_mtime, version):
@@ -75,9 +72,22 @@ def dump_cache(cache_path, data, recursive, exclude_file, exclude_dir, dir_mtime
 
         Example
             >>> dump_cache('/path/pkg/__pycache__/__init__.importer-312', ...)
+
+        Note
+            - written to a temporary file that then replaces `cache_path` (like CPython's `_write_atomic()`),
+              so another process starting at the same time never reads a half-written cache.
     '''
-    with open(cache_path, 'w+b') as file:
-        dump((version, recursive, exclude_file, exclude_dir, dir_mtime, data), file, MARSHAL_VERSION)
+    tmp_path = f'{cache_path}.{getpid()}.tmp'
+    try:
+        with open(tmp_path, 'wb') as file:
+            dump((version, recursive, exclude_file, exclude_dir, dir_mtime, data), file, MARSHAL_VERSION)
+        replace(tmp_path, cache_path)
+    except BaseException:
+        try:
+            remove(tmp_path)
+        except OSError:
+            pass
+        raise
 
 
 def load_cache(cache_path, recursive, exclude_file, exclude_dir, version):

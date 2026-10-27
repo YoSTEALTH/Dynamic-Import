@@ -5,7 +5,6 @@ from importlib.util import module_from_spec, spec_from_loader
 from sys import modules
 from types import ModuleType
 from .prep import EXT_SUFFIX
-from .special import special
 
 
 __all__ = 'Module',
@@ -20,7 +19,7 @@ class Module(ModuleType):
 
             Type
                 package: str
-                info:    dict[str, tuple[str, str, list[str] | tuple[str]]]
+                info:    dict[str, tuple[str, str, tuple[str], float]]
                 module:  ModuleType
                 args:    tuple[any]
                 kwargs:  dict[str, any]
@@ -42,7 +41,9 @@ class Module(ModuleType):
         for key, value in module.__dict__.items():
             if (key[0:2] == '__' == key[-2:]) and (key[2] != '_' != key[-3]):
                 self.__dict__[key] = value  # only update `__special__` names
-        setattr(self, '__all__', (*self.__dict__, *self.__INFO__))
+        # exported names only: special names in `__all__` would make `from pkg import *` replace the
+        # caller's own `__name__`, `__file__`, `__builtins__`, ...
+        setattr(self, '__all__', tuple(self.__INFO__))
 
     def __dir__(self):
         '''
@@ -54,7 +55,24 @@ class Module(ModuleType):
             Note:
                 - returns all names without actually loading the module yet!
         '''
-        return self.__all__
+        return self.__dict__.keys() | self.__INFO__.keys()
+
+    def __setattr__(self, name, value):
+        '''
+            Example
+                # `pkg/one.py` defines `def one(): ...`
+                >>> import pkg.one
+                >>> from pkg import one
+                >>> one()
+
+            Note
+                - `import pkg.one` binds the sub-module as `pkg.one`. If `one` is also an exported name that
+                  binding is skipped, so `pkg.one` stays the exported `one`, whichever is imported first.
+                  The module itself is still in `sys.modules` (`importlib.import_module('pkg.one')`).
+        '''
+        if isinstance(value, ModuleType) and name in self.__INFO__ and value.__name__ == f'{self.__PACKAGE__}.{name}':
+            return None
+        super().__setattr__(name, value)
 
     def __getattr__(self, name):
         '''
@@ -110,8 +128,9 @@ class Module(ModuleType):
                     if not isinstance(parent, Module):
                         setattr(parent, child_name, module)  # `Module` parents expose names via `__INFO__`
 
-                # add all the variables found in modules `__all__` into `self` (special names are ignored)
-                for var in special(variables):
+                # add all the variables found in modules `__all__` into `self` (special names already
+                # left out by `prep_variables()`)
+                for var in variables:
                     try:
                         value = getattr(module, var)
                     except AttributeError:
@@ -120,9 +139,4 @@ class Module(ModuleType):
                         raise ImportError(error, name=module_name, path=module_path) from None
                     setattr(self, var, value)
             return getattr(self, name)
-        else:
-            try:
-                return super().__getattr__(name)
-            except AttributeError:
-                error = f'module {self.__PACKAGE__!r} has no attribute {name!r}\n'
-                raise AttributeError(error) from None
+        raise AttributeError(f'module {self.__PACKAGE__!r} has no attribute {name!r}', name=name, obj=self)

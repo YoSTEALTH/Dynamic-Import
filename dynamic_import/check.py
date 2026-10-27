@@ -39,7 +39,8 @@ def importer_called(pkg_path, recursive=True, exclude_dir=()):
     if (exclude := IMPORTER_CALLED.get(pkg_path, False)) is not False:  # `None` is a valid value
         return True  # to indicate module should already exist in `sys.modules`
 
-    for other, exclude in IMPORTER_CALLED.items():
+    # copy: another thread may be importing a different package and add to `IMPORTER_CALLED` meanwhile
+    for other, exclude in IMPORTER_CALLED.copy().items():
         if pkg_path.startswith(other):  # `pkg_path` is within `other` (parent) directory.
             if exclude is None or any(pkg_path.startswith(each) for each in exclude):
                 continue  # parent did not scan sub-directories, or excluded this one.

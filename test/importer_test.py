@@ -1,5 +1,7 @@
+import importlib
 import os
 import re
+import subprocess
 import sys
 import threading
 import pytest
@@ -38,9 +40,9 @@ def test_all_name_not_defined(make_pkg):
         missing_pkg.real
 
 
-def test_thread_safe(tmp_dir, make_pkg):
+def test_thread_safe(tmp_path, make_pkg):
     # 2.6: many threads asking for the same name execute the sub-module exactly once.
-    marker = tmp_dir / 'runs.txt'
+    marker = tmp_path / 'runs.txt'
     code = f'import time\nwith open({str(marker)!r}, "a") as f:\n    f.write("x")\ntime.sleep(0.05)\nvalue = 42\n'
     make_pkg('thread_pkg', {'slow.py': code})
     import thread_pkg
@@ -55,9 +57,9 @@ def test_thread_safe(tmp_dir, make_pkg):
     assert marker.read_text() == 'x'
 
 
-def test_init_runs_once(tmp_dir, make_pkg):
+def test_init_runs_once(tmp_path, make_pkg):
     # 2.9: `__init__.py` is never executed a second time, names defined after `importer()` are read lazily.
-    marker = tmp_dir / 'init_runs.txt'
+    marker = tmp_path / 'init_runs.txt'
     init = 'from dynamic_import import importer\nimporter()\n' \
            f'with open({str(marker)!r}, "a") as f:\n    f.write("x")\nafter = 2\n'
     make_pkg('once_pkg', {'__init__.py': init, 'mod.py': 'lazy = 1\n'})
@@ -67,6 +69,87 @@ def test_init_runs_once(tmp_dir, make_pkg):
     assert once_pkg.after == 2
     import once_pkg.mod  # noqa
     assert marker.read_text() == 'x'
+
+
+def test_import_star(make_pkg):
+    # 2.14: `from pkg import *` imports the exported names only, never the package's special names.
+    init = 'from dynamic_import import importer\nimporter()\nafter = 2\n'
+    make_pkg('star_pkg', {'__init__.py': init, 'mod.py': 'one = 1\n'})
+    ns = {'__name__': 'caller'}
+    exec('from star_pkg import *', ns)
+    assert ns['__name__'] == 'caller'
+    assert '__file__' not in ns and '__path__' not in ns
+    assert (ns['one'], ns['after']) == (1, 2)
+    import star_pkg
+    assert sorted(star_pkg.__all__) == ['after', 'one']
+    assert {'__name__', '__file__', '__path__', '__all__', 'after', 'one'} <= set(dir(star_pkg))
+    assert len(dir(star_pkg)) == len(set(dir(star_pkg)))  # loaded names are listed once
+
+
+def test_duplicate_name(make_pkg):
+    # 2.15: two modules exporting the same name is an error naming both files, not a silent pick.
+    make_pkg('dup_pkg', {'a.py': 'same = "a"\n', 'sub/b.py': 'same = "b"\n'})
+    error = re.escape("`importer()` found name 'same' in both '") + '.*a.py' + re.escape("' and '") + '.*b.py'
+    with pytest.raises(ImportError, match=error):
+        import dup_pkg  # noqa
+
+
+def test_private_names(make_pkg):
+    # 2.16: without `__all__` names starting with `_` are not exported, like `from mod import *`.
+    make_pkg('priv_pkg', {'a.py': '_hidden = 1\nshown = 2\n', 'b.py': '__all__ = ["_listed"]\n_listed = 3\n'})
+    import priv_pkg
+    assert priv_pkg.shown == 2
+    assert priv_pkg._listed == 3  # `__all__` decides
+    with pytest.raises(ImportError):
+        from priv_pkg import _hidden  # noqa
+    assert '_hidden' not in dir(priv_pkg)
+
+
+@pytest.mark.parametrize('first', ['import', 'lazy'])
+def test_name_like_sub_module(make_pkg, first):
+    # 2.17: `pkg.one` is the exported `one()`, whether `import pkg.one` or `from pkg import one` comes first.
+    name = f'same_{first}_pkg'
+    make_pkg(name, {'one.py': 'def one():\n    return 1\n'})
+    pkg = importlib.import_module(name)
+    if first == 'import':
+        importlib.import_module(f'{name}.one')  # like `import pkg.one`
+    one = pkg.one
+    assert one() == 1
+    importlib.import_module(f'{name}.one')
+    assert pkg.one is one
+    assert type(sys.modules[f'{name}.one']).__name__ == 'module'
+    assert sys.modules[f'{name}.one'].one is one
+
+
+def test_missing_attribute(make_pkg):
+    # 10.1: same error as a normal module, without a trailing newline.
+    make_pkg('attr_pkg', {'mod.py': 'one = 1\n'})
+    import attr_pkg
+    with pytest.raises(AttributeError) as error:
+        attr_pkg.two
+    assert str(error.value) == "module 'attr_pkg' has no attribute 'two'"
+    assert (error.value.name, error.value.obj) == ('two', attr_pkg)
+
+
+def test_import_light():
+    # 9.1: modules only a scan needs are not loaded by `import dynamic_import`, which runs on every cache hit.
+    code = 'import sys\nbefore = set(sys.modules)\nimport dynamic_import\nprint(*set(sys.modules) - before)\n'
+    env = os.environ | {'PYTHONPATH': os.pathsep.join(sys.path)}
+    loaded = subprocess.run([sys.executable, '-c', code], env=env, capture_output=True, text=True, check=True)
+    assert not {'ast', 'glob', 'mmap', 're'} & set(loaded.stdout.split())
+
+
+def test_processes_uncached(make_pkg):
+    # 2.18: processes starting together on an uncached package all import fine and leave one valid cache.
+    files = {f'mod{i}.py': f'name{i} = {i}\n' for i in range(200)}
+    pkg = make_pkg('proc_pkg', files)
+    code = 'import proc_pkg\nassert proc_pkg.name199 == 199\n'
+    env = os.environ | {'PYTHONPATH': os.pathsep.join(sys.path)}
+    procs = [subprocess.Popen([sys.executable, '-c', code], env=env) for _ in range(8)]
+    assert [p.wait() for p in procs] == [0] * 8
+    assert os.path.exists(pkg_cache_path(os.path.join(pkg, ''), '__init__.py', 'importer'))
+    assert not [i for i in os.listdir(pkg / '__pycache__') if i.endswith('.tmp')]
+    assert subprocess.run([sys.executable, '-c', code], env=env).returncode == 0  # reads that cache
 
 
 def test_not_recursive_parent_and_sub_importer(make_pkg):
@@ -116,9 +199,9 @@ def test_read_only_package(make_pkg):
         os.chmod(pkg, 0o755)
 
 
-def test_pycache_prefix(tmp_dir, make_pkg, monkeypatch):
+def test_pycache_prefix(tmp_path, make_pkg, monkeypatch):
     # 1.2: with `sys.pycache_prefix` every package gets its own cache file under the prefix.
-    prefix = tmp_dir / 'prefix' / 'deeper'  # parent does not exist yet
+    prefix = tmp_path / 'prefix' / 'deeper'  # parent does not exist yet
     monkeypatch.setattr(sys, 'pycache_prefix', str(prefix))
     pkg_a = make_pkg('prefix_a', {'mod.py': 'alpha = 1\n'})
     pkg_b = make_pkg('prefix_b', {'mod.py': 'beta = 2\n'})

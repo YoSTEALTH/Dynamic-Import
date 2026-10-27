@@ -3,11 +3,11 @@ from os.path import join
 from dynamic_import.record import add_record
 
 
-def test_add_record(tmp_dir):
+def test_add_record(tmp_path):
     pkg_name = 'pkg'
-    cache_path = tmp_dir / f'site-packages/{pkg_name}/__pycache__/__init__.importer-313.pyc'
+    cache_path = tmp_path / f'site-packages/{pkg_name}/__pycache__/__init__.importer-313.pyc'
     cache_path = str(cache_path)
-    record_dir = tmp_dir / 'site-packages'
+    record_dir = tmp_path / 'site-packages'
     record_dir.mkdir()
     record_dir /= f'{pkg_name}-123.45.6.dist-info/'
     record_dir.mkdir()
@@ -33,15 +33,15 @@ def test_add_record(tmp_dir):
                               b'pkg/sub_module/__pycache__/__init__.importer-313.pyc,,\r\n'
 
     # not inside `site-packages`
-    add_record(pkg_name, str(tmp_dir / 'elsewhere/pkg/__pycache__/__init__.importer-313.pyc'))
+    add_record(pkg_name, str(tmp_path / 'elsewhere/pkg/__pycache__/__init__.importer-313.pyc'))
     with open(record_file, 'rb') as file:
         assert file.read().count(b'\r\n') == 2
 
 
-def test_add_record_other_dist_name(tmp_dir):
+def test_add_record_other_dist_name(tmp_path):
     # 2.7: distribution named differently than the package, `site-packages` twice in the path,
     #      `RECORD` without trailing newline.
-    site = tmp_dir / 'site-packages/venv/lib/site-packages'
+    site = tmp_path / 'site-packages/venv/lib/site-packages'
     site.mkdir(parents=True)
     other = site / 'Other_Dist-1.0.dist-info'
     other.mkdir()

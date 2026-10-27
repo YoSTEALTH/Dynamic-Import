@@ -14,9 +14,9 @@ def test_extract_variable():
         extract_variable('test/basic/skip/bad_all.py')
 
 
-def test_extract_variable_targets(tmp_dir):
+def test_extract_variable_targets(tmp_path):
     # 1.1 & 2.4: targets other than a plain name, annotated assignment, `if` blocks.
-    file = tmp_dir / 'mod.py'
+    file = tmp_path / 'mod.py'
     file.write_text('import os\n'
                     'x, y = 1, 2\n'
                     '[p, q] = 3, 4\n'
@@ -34,8 +34,8 @@ def test_extract_variable_targets(tmp_dir):
     assert extract_variable(str(file)) == ['x', 'y', 'p', 'q', 'a', 'b', 'c', 'func', 'afunc', 'Klass']
 
 
-def test_extract_variable_all(tmp_dir):
-    file = tmp_dir / 'mod.py'
+def test_extract_variable_all(tmp_path):
+    file = tmp_path / 'mod.py'
     file.write_text('__all__ = ["one"]\n__all__ += ["two"]\n__all__ += ("three",)\nother = 1\n')
     assert extract_variable(str(file)) == ['one', 'two', 'three']
 
@@ -66,9 +66,9 @@ if (jobs := os.cpu_count()) > 4:
 
 
 @pytest.mark.skipif(skip_cython, reason='Cython/Cythonize NOT Installed!')
-def test_extract_so_variable(tmp_dir):
+def test_extract_so_variable(tmp_path):
     # create 'pkg' directory
-    pkg_path = tmp_dir / 'pkg'
+    pkg_path = tmp_path / 'pkg'
     pkg_path.mkdir()
 
     # create '__init__.py'

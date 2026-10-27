@@ -1,6 +1,5 @@
-from glob import glob
-from os import sep
-from os.path import join
+from os import scandir, sep
+from os.path import isfile, join, normcase
 
 
 SITE = f'{sep}site-packages{sep}'  # Windows: '\site-packages\'
@@ -53,12 +52,22 @@ def find_record(site_dir, top_name):
             >>> find_record('/path/site-packages/', 'pkg')
             '/path/site-packages/pkg-1.2.3.dist-info/RECORD'
     '''
+    # note: `os.scandir()` instead of `glob()`, which imports `re` (most of `import dynamic_import` time).
+    #       `normcase()` matches like `glob()` does: case-insensitive on Windows.
+    try:
+        with scandir(site_dir) as entries:
+            names = [i.name for i in entries if normcase(i.name).endswith('.dist-info')]
+    except OSError:
+        return None
     # fast path: distribution named like the package, e.g: `pkg-1.2.3.dist-info`
-    for found in glob(join(site_dir, f'{top_name}-*.dist-info', 'RECORD')):
-        return found
+    prefix = normcase(f'{top_name}-')
+    for name in names:
+        if normcase(name).startswith(prefix) and isfile(found := join(site_dir, name, 'RECORD')):
+            return found
     # slow path: distribution named differently, find the `RECORD` that installed `pkg/__init__.py`
     owns = f'{top_name}/__init__.py,'.encode()
-    for found in glob(join(site_dir, '*.dist-info', 'RECORD')):
+    for name in names:
+        found = join(site_dir, name, 'RECORD')
         try:
             with open(found, 'rb') as file:
                 for line in file:

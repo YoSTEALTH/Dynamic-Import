@@ -16,33 +16,11 @@ def native(path):
     return path.replace('/', os.sep)
 
 
-@pytest.fixture
-def tmp_dir(tmp_path):
-    ''' Temporary directory to store test data.
-
-        Example
-            >>> test_my_function(tmp_dir)
-            ...     # create directory
-            ...     # ----------------
-            ...     my_dir = tmp_dir / 'my_dir'
-            ...     my_dir.mkdir()
-            ...
-            ...     # create file
-            ...     # -----------
-            ...     my_file = tmp_dir / 'my_file.ext'
-            ...     my_file.write_text('Hello World!!!')
-
-        Note
-            - pytest keeps the last 3 runs under `/tmp/pytest-of-<user>/` and removes older ones.
-    '''
-    return tmp_path
-
-
 INIT = 'from dynamic_import import importer\nimporter()\n'
 
 
 @pytest.fixture
-def make_pkg(tmp_dir, monkeypatch):
+def make_pkg(tmp_path, monkeypatch):
     ''' Create a throw-away package in its own holder directory and put the holder on `sys.path`.
 
         Type
@@ -60,7 +38,7 @@ def make_pkg(tmp_dir, monkeypatch):
             - `sys.path` is restored after the test, `sys.modules` is not: use a unique package name per test.
     '''
     def make(name, files):
-        holder = tmp_dir / f'{name}_holder'
+        holder = tmp_path / f'{name}_holder'
         pkg = holder / name
         for rel, data in ({'__init__.py': INIT} | files).items():
             path = pkg / rel

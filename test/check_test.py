@@ -3,6 +3,7 @@ import sys
 from os.path import join
 import pytest
 from conftest import native
+from dynamic_import import check
 from dynamic_import.check import IMPORTER_CALLED, exclude_dir_check, exclude_file_check, importer_called, is_rooted
 from dynamic_import.prep import EXT_SUFFIX
 
@@ -44,6 +45,19 @@ def test_importer_called_not_recursive():
     assert importer_called('/path/flat/sub/') is True
 
 
+def test_importer_called_other_thread(monkeypatch):
+    # another thread registers its package while this one scans `IMPORTER_CALLED`
+    class Registry(dict):
+        def items(self):
+            for item in super().items():
+                self['/path/other_thread/'] = None
+                yield item
+
+    monkeypatch.setattr(check, 'IMPORTER_CALLED', Registry({'/path/a/': None, '/path/b/': None}))
+    assert importer_called('/path/this_thread/') is None  # was: dictionary changed size during iteration
+    assert '/path/this_thread/' in check.IMPORTER_CALLED
+
+
 def test_importer_called_sub_first():
     # sub-directory called `importer()` before the parent
     assert importer_called('/path/top/sub/') is None
@@ -63,9 +77,9 @@ def test_is_rooted():
         assert is_rooted('C:file.py') and is_rooted('C:\\pkg\\file.py') and is_rooted('\\file.py')
 
 
-def test_exclude_file_check(tmp_dir):
+def test_exclude_file_check(tmp_path):
     pkg_name = 'pkg'
-    pkg_dir = tmp_dir / pkg_name
+    pkg_dir = tmp_path / pkg_name
     pkg_path = join(pkg_dir, '')
     file_path = pkg_dir / 'file.py'
 
@@ -92,9 +106,9 @@ def test_exclude_file_check(tmp_dir):
     assert exclude_file_check(None, pkg_path) == []
 
 
-def test_exclude_dir_check(tmp_dir):
+def test_exclude_dir_check(tmp_path):
     pkg_name = 'pkg'
-    pkg_dir = tmp_dir / pkg_name
+    pkg_dir = tmp_path / pkg_name
     pkg_path = join(pkg_dir, '')
     recursive = True
     sub_dir = pkg_dir / 'sub-dir/'
@@ -104,7 +118,7 @@ def test_exclude_dir_check(tmp_dir):
     with pytest.raises(ValueError, match=error):
         exclude_dir_check('/sub-dir', pkg_path, recursive)
 
-    sub = join(tmp_dir, 'sub-dir', '')
+    sub = join(tmp_path, 'sub-dir', '')
     error = re.escape(f"`importer(exclude_dir)` can not find directory {sub!r} within {pkg_path!r}")
     with pytest.raises(ValueError, match=error):
         exclude_dir_check('../sub-dir', pkg_path, recursive)
