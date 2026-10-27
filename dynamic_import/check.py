@@ -1,5 +1,5 @@
 from os import sep
-from os.path import normpath, isdir, isabs, isfile, join, splitdrive
+from os.path import isabs, isdir, isfile, join, normpath, splitdrive
 from .prep import EXT_SUFFIX
 
 

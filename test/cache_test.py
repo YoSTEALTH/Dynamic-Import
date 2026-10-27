@@ -1,14 +1,22 @@
 import os
-import sys
 import os.path
-from os.path import join
-import time
 import shutil
+import sys
+import time
+from os.path import join
 import pytest
 from conftest import native
+from dynamic_import.cache import (
+    CACHE_DIR_PATH,
+    CACHE_EXT,
+    MARSHAL_VERSION,
+    VERSION_TAG,
+    create_cache_dir,
+    dump_cache,
+    load_cache,
+    pkg_cache_path,
+)
 from dynamic_import.version import version
-from dynamic_import.cache import CACHE_DIR_PATH, MARSHAL_VERSION, VERSION_TAG, CACHE_EXT, \
-                                 pkg_cache_path, dump_cache, load_cache, create_cache_dir
 
 
 def test_pkg_cache_path(tmp_path):

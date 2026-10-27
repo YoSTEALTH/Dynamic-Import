@@ -1,10 +1,10 @@
 import os
-import re
-import sys
 import os.path
-import pytest
+import re
 import subprocess
-from dynamic_import.extract import extract_variable, extract_so_variable
+import sys
+import pytest
+from dynamic_import.extract import extract_so_variable, extract_variable
 
 
 def test_extract_variable():

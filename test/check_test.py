@@ -1,9 +1,9 @@
 import re
 import sys
-import pytest
 from os.path import join
+import pytest
 from conftest import native
-from dynamic_import.check import IMPORTER_CALLED, importer_called, is_rooted, exclude_dir_check, exclude_file_check
+from dynamic_import.check import IMPORTER_CALLED, exclude_dir_check, exclude_file_check, importer_called, is_rooted
 from dynamic_import.prep import EXT_SUFFIX
 
 

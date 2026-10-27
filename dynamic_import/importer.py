@@ -1,9 +1,9 @@
-from os import remove, sep, altsep
+from os import altsep, remove, sep
+from os.path import exists, join, split
 from sys import _getframe, modules
-from os.path import exists, split, join
+from .cache import create_cache_dir, dump_cache, load_cache, pkg_cache_path
+from .check import exclude_dir_check, exclude_file_check, importer_called
 from .module import Module
-from .check import importer_called, exclude_file_check, exclude_dir_check
-from .cache import pkg_cache_path, create_cache_dir, dump_cache, load_cache
 from .prep import prep_package
 from .record import add_record
 from .version import version

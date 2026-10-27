@@ -45,8 +45,15 @@ line-length = 120
 [tool.ruff.format]
 quote-style = "preserve"
 
+[tool.ruff.lint]
+select = ["E", "F", "W", "UP", "I"]  # UP: keep the code on Python 3.11+ idioms, I: sorted imports
+
+[tool.ruff.lint.per-file-ignores]
+"test/*" = ["E402", "F401", "F811"]  # tests import inside functions on purpose
+
 [tool.ruff.lint.isort]
-no-lines-before = ["third-party", "first-party", "local-folder"]  # std, third-party, liburing: no blank lines.
+no-lines-before = ["third-party", "first-party", "local-folder"]  # std, third-party, own package: no blank lines.
+lines-after-imports = 2
 
 [tool.setuptools]
 packages = ["dynamic_import"]

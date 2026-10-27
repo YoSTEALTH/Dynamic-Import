@@ -1,16 +1,16 @@
+import json
 import os
 import re
-import sys
-import json
 import shlex
 import shutil
-import sysconfig
 import subprocess
+import sys
+import sysconfig
+from importlib import import_module
+from importlib.machinery import EXTENSION_SUFFIXES
+from importlib.util import find_spec
 import pytest
 import dynamic_import
-from importlib import import_module
-from importlib.util import find_spec
-from importlib.machinery import EXTENSION_SUFFIXES
 from dynamic_import.extract import extract_so_variable
 
 
@@ -183,7 +183,7 @@ def test_so_built_all_forms(make_pkg):
     import so_built_pkg
     assert {'hello_one', 'hello_two', 'hello_three'} <= set(dir(so_built_pkg))
 
-    from so_built_pkg import hello_one, hello_two, hello_three
+    from so_built_pkg import hello_one, hello_three, hello_two
     assert hello_one('World') == 'Hello World!'
     assert hello_two('World') == 'Hello World!'
     assert hello_three('World') == 'Hello World!'

@@ -1,9 +1,9 @@
 import sys
-import pytest
-from os.path import join
-from conftest import native
 from importlib.machinery import EXTENSION_SUFFIXES
-from dynamic_import.prep import EXT_SUFFIX, prep_package, prep_variables, is_extension
+from os.path import join
+import pytest
+from conftest import native
+from dynamic_import.prep import EXT_SUFFIX, is_extension, prep_package, prep_variables
 
 
 def test_cache():

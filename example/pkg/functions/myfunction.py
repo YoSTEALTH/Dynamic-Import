@@ -1,4 +1,6 @@
 from pkg import my_var
+
+
 # all import names are available at higher level,
 # no need for `from ..example.var import my_var`
 

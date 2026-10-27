@@ -1,6 +1,18 @@
+from ast import (
+    Add,
+    AnnAssign,
+    Assign,
+    AsyncFunctionDef,
+    AugAssign,
+    ClassDef,
+    FunctionDef,
+    List,
+    Name,
+    Tuple,
+    literal_eval,
+    parse,
+)
 from importlib import import_module
-from ast import FunctionDef, AsyncFunctionDef, ClassDef, Assign, AnnAssign, AugAssign, Add, Name, Tuple, List, \
-                parse, literal_eval
 from .special import special
 
 

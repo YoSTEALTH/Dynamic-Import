@@ -1,6 +1,6 @@
+from glob import glob
 from os import sep
 from os.path import join
-from glob import glob
 
 
 SITE = f'{sep}site-packages{sep}'  # Windows: '\site-packages\'

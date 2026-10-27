@@ -1,6 +1,6 @@
+import pathlib
 import sys
 import pytest
-import pathlib
 from dynamic_import.special import special
 
 

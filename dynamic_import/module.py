@@ -1,9 +1,9 @@
+from importlib import import_module
+from importlib._bootstrap import _ModuleLockManager as module_lock  # same per-module lock `import` uses
+from importlib.machinery import ExtensionFileLoader, SourceFileLoader
+from importlib.util import module_from_spec, spec_from_loader
 from sys import modules
 from types import ModuleType
-from importlib import import_module
-from importlib.util import spec_from_loader, module_from_spec
-from importlib.machinery import SourceFileLoader, ExtensionFileLoader
-from importlib._bootstrap import _ModuleLockManager as module_lock  # same per-module lock `import` uses
 from .prep import EXT_SUFFIX
 from .special import special
 

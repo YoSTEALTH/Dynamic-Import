@@ -1,5 +1,5 @@
-from .version import version
 from .importer import importer
+from .version import version
 
 
 __all__ = 'importer',

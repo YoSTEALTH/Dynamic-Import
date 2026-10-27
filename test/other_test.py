@@ -1,9 +1,9 @@
 import re
-import pytest
 from types import ModuleType
+import pytest
 from conftest import native
-from dynamic_import.prep import EXT_SUFFIX, prep_package
 from dynamic_import.module import Module
+from dynamic_import.prep import EXT_SUFFIX, prep_package
 
 
 def test_module():

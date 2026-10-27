@@ -1,8 +1,8 @@
-from os import walk, stat, sep
-from os.path import join
-from mmap import mmap, ACCESS_READ
 from importlib.machinery import EXTENSION_SUFFIXES
-from .extract import extract_variable, extract_so_variable
+from mmap import ACCESS_READ, mmap
+from os import sep, stat, walk
+from os.path import join
+from .extract import extract_so_variable, extract_variable
 from .special import special
 
 

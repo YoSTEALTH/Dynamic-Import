@@ -2,7 +2,7 @@ import conflict
 
 
 def test_conflict():
-    from conflict import my_func, another_func
+    from conflict import another_func, my_func
     assert my_func() == 'my_func() called'
     assert another_func() == 'another_func() called'
 

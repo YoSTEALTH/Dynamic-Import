@@ -62,7 +62,7 @@ def test_init_runs_once(tmp_dir, make_pkg):
            f'with open({str(marker)!r}, "a") as f:\n    f.write("x")\nafter = 2\n'
     make_pkg('once_pkg', {'__init__.py': init, 'mod.py': 'lazy = 1\n'})
     import once_pkg
-    from once_pkg import lazy, after
+    from once_pkg import after, lazy
     assert (lazy, after) == (1, 2)
     assert once_pkg.after == 2
     import once_pkg.mod  # noqa
@@ -96,7 +96,7 @@ def test_tuple_assignment(make_pkg):
     # 1.1: module-level tuple/attribute/subscript assignments do not crash the scan.
     code = 'import os\nx, y = 1, 2\nos.environ["DI_TEST"] = "1"\nos.environ.__dict__["z"] = 1\na: int = 3\nb: int\n'
     make_pkg('tuple_pkg', {'mod.py': code})
-    from tuple_pkg import x, y, a
+    from tuple_pkg import a, x, y
     assert (x, y, a) == (1, 2, 3)
     with pytest.raises(ImportError):
         from tuple_pkg import b  # noqa - annotation only
