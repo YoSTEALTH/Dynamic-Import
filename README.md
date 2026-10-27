@@ -11,7 +11,7 @@ import module as needed within the project and for external usage on run-time.
 * Just call `from <package> import <variable>` while coding and when end-user calls from your
   project. All names are accessible at top level, easy to remember.
 * Move/rename file within your project? No problem, auto updates.
-* Supports `.py` and extension module `.so` (`.pyd` on Windows) files (experimental)
+* Supports `.py` and extension module `.so` (`.pyd` on Windows) files
 * Saves memory(for medium to large projects).
 
 Ultimate worry free management comfort as your project grows from small to large.
