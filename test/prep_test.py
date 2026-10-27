@@ -47,10 +47,15 @@ def test_prep_data_dir(tmp_dir):
     (pkg_path / 'skip').mkdir()
     (pkg_path / 'skip' / 'deep').mkdir()
     (pkg_path / 'skip' / 'deep' / 'mod.py').write_text('x = 1')
+    # dotted names are never packages, e.g. macOS debug bundle `mod.so.dSYM/Contents/Resources/DWARF/mod.so`
+    for dotted in ('mod.so.dSYM', '.hidden'):
+        (pkg_path / dotted / 'deep').mkdir(parents=True)
+        (pkg_path / dotted / 'deep' / 'mod.py').write_text('x = 1')
 
     info, dir_mtime = prep_package('pkg', join(pkg_path, ''), True, [], [join(pkg_path, 'skip', '')])
     assert info == {}
-    assert set(dir_mtime) == {join(pkg_path, ''), join(pkg_path, 'data', '')}  # `__pycache__`, `skip/` not descended
+    # `__pycache__`, `skip/` and dotted directories not descended
+    assert set(dir_mtime) == {join(pkg_path, ''), join(pkg_path, 'data', '')}
 
     (pkg_path / 'data' / 'mod.py').write_text('x = 1')
     info, _ = prep_package('pkg', join(pkg_path, ''), True, [], [])

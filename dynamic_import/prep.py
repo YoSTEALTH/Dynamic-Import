@@ -91,14 +91,16 @@ def prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_d
         Note
             - every scanned directory is recorded in `dir_mtime` (even ones without a module yet),
               so a module added to a data-only directory later still invalidates the cache.
-            - `__pycache__` and `exclude_dir` directories are not descended into.
+            - `__pycache__`, `exclude_dir` and dotted (`name.dSYM`, `.git`) directories are not descended into.
             - an untagged `.so` that is not an extension module (`libfoo.so`) is skipped, see `is_extension()`.
     '''
     skip = len(pkg_path) - len(pkg_name) - 1  # "/path/pkg" - "pkg" - 1
     for root, dirs, files in walk(pkg_path):
         root_path = join(root, '')  # '/path/pkg/sub' to '/path/pkg/sub/'
-        # do not descend into `__pycache__` or excluded directories.
-        dirs[:] = [d for d in dirs if d != '__pycache__' and join(root_path, d, '') not in exclude_dir]
+        # do not descend into `__pycache__`, excluded directories, or a name with a `.` (e.g: macOS
+        # 'mod.cpython-312-darwin.so.dSYM' debug bundle): `import` splits on dots, so it is never a package.
+        dirs[:] = [d for d in dirs
+                   if d != '__pycache__' and '.' not in d and join(root_path, d, '') not in exclude_dir]
         dir_mtime[root_path] = stat(root_path).st_mtime  # a new file in this directory changes it
 
         if files:
