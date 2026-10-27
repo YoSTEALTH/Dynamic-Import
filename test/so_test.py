@@ -14,9 +14,13 @@ from importlib.machinery import EXTENSION_SUFFIXES
 from dynamic_import.extract import extract_so_variable
 
 
-SUFFIX = EXTENSION_SUFFIXES[0]  # e.g: '.cpython-315-x86_64-linux-gnu.so'
+SUFFIX = EXTENSION_SUFFIXES[0]  # e.g: '.cpython-315-x86_64-linux-gnu.so', Windows: '.cp315-win_amd64.pyd'
 # real extension modules shipped by CPython, one public name each that exists on every supported version.
-SO_NAME = {'_bisect': 'bisect_left', '_heapq': 'heappush', '_json': 'scanstring'}
+if sys.platform == 'win32':  # `_bisect` & co. are built into `python3XY.dll`; these are own `.pyd` files in `DLLs\`
+    SO_NAME = {'unicodedata': 'lookup', '_queue': 'SimpleQueue', 'winsound': 'Beep'}  # no dependent `.dll`
+else:
+    SO_NAME = {'_bisect': 'bisect_left', '_heapq': 'heappush', '_json': 'scanstring'}
+SO_FIRST, SO_FIRST_NAME = next(iter(SO_NAME.items()))  # e.g: '_bisect', 'bisect_left'
 
 
 def so_files(*names):
@@ -28,12 +32,14 @@ def so_files(*names):
 
         Note
             - files keep their own name: the init symbol (`PyInit__bisect`) must match the module base name.
+            - Windows ships them untagged (`DLLs\\unicodedata.pyd`); the copy gets `SUFFIX`, the loader only
+              checks the file name.
             - skips the test if the interpreter has the module built in (static build, no `.so` file).
     '''
     files = {}
     for name in names:
         path = find_spec(name).origin  # 'built-in' for a static build, also right inside a venv
-        if not path.endswith(SUFFIX):
+        if not path.endswith(tuple(EXTENSION_SUFFIXES)):
             pytest.skip(f'{name!r} is not a separate extension module file on this interpreter')
         with open(path, 'rb') as f:
             files[name + SUFFIX] = f.read()
@@ -41,37 +47,46 @@ def so_files(*names):
 
 
 def test_so_scan_and_load(make_pkg):
-    # 6.8: names of every `.so` are found, a name loads its `.so`, plain `libfoo.so` is ignored.
-    make_pkg('so_scan_pkg', so_files(*SO_NAME) | {'mod.py': 'plain = 1\n', 'libfoo.so': b'not an extension'})
+    # 6.8: names of every `.so` are found, a name loads its `.so`, plain `libfoo.so` / `foo.dll` are ignored.
+    lib = {'libfoo.so': b'not an extension', 'foo.dll': b'not an extension'}
+    make_pkg('so_scan_pkg', so_files(*SO_NAME) | lib | {'mod.py': 'plain = 1\n'})
     import so_scan_pkg
     names = dir(so_scan_pkg)
     for name in (*SO_NAME.values(), 'plain'):
         assert name in names
-    assert 'libfoo' not in sys.modules and 'so_scan_pkg.libfoo' not in sys.modules
+    for name in ('libfoo', 'foo'):
+        assert name not in names and f'so_scan_pkg.{name}' not in sys.modules
 
-    from so_scan_pkg import bisect_left, plain
-    assert bisect_left([1, 2, 3], 2) == 1
+    from so_scan_pkg import plain
     assert plain == 1
-    assert so_scan_pkg.bisect_left is sys.modules['so_scan_pkg._bisect'].bisect_left
+    for module, name in SO_NAME.items():
+        value = getattr(so_scan_pkg, name)
+        assert value.__name__ == name
+        assert value is getattr(sys.modules[f'so_scan_pkg.{module}'], name)
+        assert sys.modules[f'so_scan_pkg.{module}'].__file__.endswith(SUFFIX)
+    if sys.platform != 'win32':
+        assert so_scan_pkg.bisect_left([1, 2, 3], 2) == 1
+    else:
+        assert so_scan_pkg.lookup('LATIN SMALL LETTER A') == 'a'
 
 
 def test_so_exclude_file(make_pkg):
-    files = so_files('_bisect', '_json')
-    init = f'from dynamic_import import importer\nimporter(exclude_file="_json{SUFFIX}")\n'
-    make_pkg('so_exclude_pkg', files | {'__init__.py': init})
+    (keep, keep_name), (skip, skip_name) = list(SO_NAME.items())[:2]  # e.g: ('_bisect', ...), ('_heapq', ...)
+    init = f'from dynamic_import import importer\nimporter(exclude_file="{skip}{SUFFIX}")\n'
+    make_pkg('so_exclude_pkg', so_files(keep, skip) | {'__init__.py': init})
     import so_exclude_pkg
-    assert 'bisect_left' in dir(so_exclude_pkg)
-    assert 'scanstring' not in dir(so_exclude_pkg)
-    assert 'so_exclude_pkg._json' not in sys.modules  # not even imported during the scan
+    assert keep_name in dir(so_exclude_pkg)
+    assert skip_name not in dir(so_exclude_pkg)
+    assert f'so_exclude_pkg.{skip}' not in sys.modules  # not even imported during the scan
 
 
-SCRIPT = '''
+SCRIPT = f'''
 import sys, json
 def loaded():
     return sorted(n for n in sys.modules if n.startswith('so_lazy_pkg.'))
 import so_lazy_pkg
 before = loaded()
-so_lazy_pkg.bisect_left
+so_lazy_pkg.{SO_FIRST_NAME}
 print(json.dumps([before, loaded()]))
 '''
 
@@ -89,7 +104,7 @@ def test_so_lazy_with_cache(make_pkg):
 
     all_so = sorted(f'so_lazy_pkg.{name}' for name in SO_NAME)
     assert run() == [all_so, all_so]
-    assert run() == [[], ['so_lazy_pkg._bisect']]
+    assert run() == [[], [f'so_lazy_pkg.{SO_FIRST}']]
 
 
 C_MODULE = '''
@@ -127,7 +142,7 @@ PyMODINIT_FUNC PyInit_%(name)s(void) {
 '''
 
 
-def build_so(directory, name, all_value='NULL', suffix=SUFFIX):
+def build_so(directory, name, all_value='NULL', suffix=SUFFIX, source=None):
     ''' Compile a tiny C extension module with the interpreter's own build settings (no Cython, no setuptools).
 
         Type
@@ -135,6 +150,7 @@ def build_so(directory, name, all_value='NULL', suffix=SUFFIX):
             name:      str
             all_value: str            C expression for `__all__`, e.g: 'Py_BuildValue("[s]", "hello_x")'
             suffix:    str            one of `EXTENSION_SUFFIXES`, e.g: '.abi3.so'
+            source:    str | None     C source to build instead of the module, e.g. a plain shared library
             return:    pathlib.Path   e.g: '<directory>/<name>.cpython-315-x86_64-linux-gnu.so'
 
         Note
@@ -149,7 +165,7 @@ def build_so(directory, name, all_value='NULL', suffix=SUFFIX):
         pytest.skip('no C compiler or Python headers to build an extension module')
     directory.mkdir(parents=True, exist_ok=True)
     src = directory / f'{name}.c'
-    src.write_text(C_MODULE % {'name': name, 'all': all_value})
+    src.write_text(C_MODULE % {'name': name, 'all': all_value} if source is None else source)
     out = directory / (name + suffix)
     ccshared = shlex.split(sysconfig.get_config_var('CCSHARED') or '')  # e.g: '-fPIC'
     cmd = [*ldshared, *ccshared, f'-I{include}', str(src), '-o', str(out)]
@@ -190,18 +206,35 @@ def test_so_every_suffix(make_pkg, suffix):
     # every name `importlib.machinery.EXTENSION_SUFFIXES` lists on this interpreter, e.g. on 3.15:
     # '.cpython-315-x86_64-linux-gnu.so', '.abi3-x86_64-linux-gnu.so', '.abi3.so', '.abi3t-...so', '.abi3t.so', '.so'
     name = f'so_suffix_pkg_{EXTENSION_SUFFIXES.index(suffix)}'
-    exclude = '' if suffix == '.so' else f'exclude_file="skip{suffix}"'  # `exclude_file` rejects bare `.so`
-    pkg = make_pkg(name, {'__init__.py': f'from dynamic_import import importer\nimporter({exclude})\n'})
+    init = f'from dynamic_import import importer\nimporter(exclude_file="skip{suffix}")\n'
+    pkg = make_pkg(name, {'__init__.py': init})
     build_so(pkg, 'ext', suffix=suffix)
     build_so(pkg, 'skip', suffix=suffix)
     module = import_module(name)
-    if suffix == '.so':  # bare `.so` is any shared library (`libfoo.so`), never scanned (1.4)
-        assert 'hello_ext' not in dir(module)
-        assert f'{name}.ext' not in sys.modules
-        with pytest.raises(AttributeError):
-            module.hello_ext
-    else:
-        assert module.hello_ext('World') == 'Hello World!'
-        assert sys.modules[f'{name}.ext'].__file__.endswith(suffix)
-        assert 'hello_skip' not in dir(module)  # `exclude_file` accepts this suffix
-        assert f'{name}.skip' not in sys.modules
+    assert module.hello_ext('World') == 'Hello World!'
+    assert sys.modules[f'{name}.ext'].__file__.endswith(suffix)
+    assert 'hello_skip' not in dir(module)  # `exclude_file` accepts this suffix
+    assert f'{name}.skip' not in sys.modules
+
+
+C_LIBRARY = '''
+int add(int a, int b) {
+    return a + b;
+}
+'''
+
+
+def test_so_bare_module_and_library(make_pkg):
+    # an untagged `.so` is scanned only if it is an extension module (`liburing.so`), a plain shared library
+    # bundled with the package (`libfoo.so`) is skipped without being loaded.
+    if '.so' not in EXTENSION_SUFFIXES:
+        pytest.skip('this platform has no bare `.so` extension suffix')
+    pkg = make_pkg('so_bare_pkg', {'libempty.so': b'', 'libjunk.so': b'not an extension'})
+    build_so(pkg, 'libring', suffix='.so')
+    build_so(pkg, 'libfoo', suffix='.so', source=C_LIBRARY)
+    import so_bare_pkg
+    assert 'hello_libring' in dir(so_bare_pkg)
+    for lib in ('libfoo', 'libempty', 'libjunk'):
+        assert f'so_bare_pkg.{lib}' not in sys.modules
+    assert so_bare_pkg.hello_libring('World') == 'Hello World!'
+    assert sys.modules['so_bare_pkg.libring'].__file__.endswith(os.sep + 'libring.so')

@@ -1,5 +1,5 @@
 import sys
-from os import makedirs, stat
+from os import makedirs, stat, sep, altsep
 from os.path import exists, join, dirname, splitext
 from importlib.machinery import BYTECODE_SUFFIXES
 from marshal import dump, load
@@ -11,6 +11,7 @@ CACHE_DIR_PATH = '__pycache__'
 MARSHAL_VERSION = 4
 VERSION_TAG = sys.implementation.cache_tag.split('-')[1]  # e.g: 'cpython-312' to '312'
 CACHE_EXT = BYTECODE_SUFFIXES[0]  # e.g: ['.pyc'] to '.pyc'
+SEPARATORS = sep + (altsep or '')  # '/', Windows: '\/'
 
 
 def pkg_cache_path(pkg_path, file_name, func_name):
@@ -37,7 +38,9 @@ def pkg_cache_path(pkg_path, file_name, func_name):
     name = splitext(file_name)[0]  # '__init__.py' to '__init__'
     new_file_name = f'{name}.{func_name}-{VERSION_TAG}{CACHE_EXT}'  # '__init__.importer-312.pyc'
     if prefix := sys.pycache_prefix:
-        return join(prefix, pkg_path.lstrip('/'), new_file_name)
+        if pkg_path[1:2] == ':' and pkg_path[0:1] not in SEPARATORS:
+            pkg_path = pkg_path[2:]  # Windows: 'C:\path\pkg\' to '\path\pkg\', like `cache_from_source()`
+        return join(prefix, pkg_path.lstrip(SEPARATORS), new_file_name)
     return join(pkg_path, CACHE_DIR_PATH, new_file_name)
 
 

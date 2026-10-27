@@ -1,16 +1,46 @@
-from os import walk, stat
+from os import walk, stat, sep
 from os.path import join
+from mmap import mmap, ACCESS_READ
 from importlib.machinery import EXTENSION_SUFFIXES
 from .extract import extract_variable, extract_so_variable
 from .special import special
 
 
-__all__ = 'EXT_SUFFIX', 'prep_package', 'prep_files', 'prep_variables'
-# e.g: ('.py', '.cpython-312-x86_64-linux-gnu.so', '.abi3.so')
-EXT_SUFFIX = ('.py', *(i for i in EXTENSION_SUFFIXES if i != '.so'))
-# note: plain `.so` is left out on purpose. Every shared library bundled with a package (`libfoo.so`)
-#       would otherwise be `import_module`'d during the scan and fail the whole package. Extension
-#       modules built by setuptools/cython always carry the tagged suffix.
+__all__ = 'EXT_SUFFIX', 'prep_package', 'prep_files', 'prep_variables', 'is_extension'
+# e.g: ('.py', '.cpython-312-x86_64-linux-gnu.so', '.abi3.so', '.so'), Windows: ('.py', '.cp312-win_amd64.pyd', '.pyd')
+EXT_SUFFIX = ('.py', *EXTENSION_SUFFIXES)
+# note: plain `.so` is also used by every shared library bundled with a package (`libfoo.so`), so an
+#       untagged `.so` is only scanned if `is_extension()` finds its init function (`liburing.so`).
+TAGGED = tuple(i for i in EXTENSION_SUFFIXES if i != '.so')  # e.g: ('.cpython-312-x86_64-linux-gnu.so', ...)
+
+
+def is_extension(file_path, name):
+    ''' Is the untagged `.so` file a Python extension module?
+
+        Type
+            file_path: str
+            name:      str    module base name, e.g: 'liburing'
+            return:    bool
+
+        Example
+            >>> is_extension('/path/pkg/liburing.so', 'liburing')
+            True
+            >>> is_extension('/path/pkg/libfoo.so', 'libfoo')  # plain shared library
+            False
+
+        Note
+            - looks for the exported symbol name the import system calls, `PyInit_<name>` (3.15+ also
+              `PyModExport_<name>`), in the file. The file is never loaded, so a plain library is not run.
+            - a non-ASCII name uses the `PyInitU_<punycode>` form, like the import system does.
+    '''
+    if name.isascii():
+        symbol, unicode = name.encode(), b''
+    else:
+        symbol, unicode = name.encode('punycode').replace(b'-', b'_'), b'U'
+    if not stat(file_path).st_size:
+        return False  # `mmap` can not map an empty file
+    with open(file_path, 'rb') as file, mmap(file.fileno(), 0, access=ACCESS_READ) as data:
+        return any(data.find(hook + unicode + b'_' + symbol + b'\0') != -1 for hook in (b'PyInit', b'PyModExport'))
 
 
 def prep_package(pkg_name, pkg_path, recursive, exclude_file, exclude_dir):
@@ -62,17 +92,18 @@ def prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_d
             - every scanned directory is recorded in `dir_mtime` (even ones without a module yet),
               so a module added to a data-only directory later still invalidates the cache.
             - `__pycache__` and `exclude_dir` directories are not descended into.
+            - an untagged `.so` that is not an extension module (`libfoo.so`) is skipped, see `is_extension()`.
     '''
     skip = len(pkg_path) - len(pkg_name) - 1  # "/path/pkg" - "pkg" - 1
     for root, dirs, files in walk(pkg_path):
-        root_path = root if root.endswith('/') else f'{root}/'
+        root_path = join(root, '')  # '/path/pkg/sub' to '/path/pkg/sub/'
         # do not descend into `__pycache__` or excluded directories.
-        dirs[:] = [d for d in dirs if d != '__pycache__' and f'{root_path}{d}/' not in exclude_dir]
+        dirs[:] = [d for d in dirs if d != '__pycache__' and join(root_path, d, '') not in exclude_dir]
         dir_mtime[root_path] = stat(root_path).st_mtime  # a new file in this directory changes it
 
         if files:
             # e.g: "/path/pkg/sub/module/" to "pkg.sub.module"
-            if (module_name := root[skip:].replace("/", ".")).endswith('.'):
+            if (module_name := root[skip:].replace(sep, '.')).endswith('.'):
                 module_name = module_name[:-1]
 
             for file in files:
@@ -80,12 +111,16 @@ def prep_files(pkg_name, pkg_path, recursive, dir_mtime, exclude_file, exclude_d
                     # skip excluded file
                     if (file_path := join(root, file)) in exclude_file:
                         continue
+                    name = file.split('.')[0]
+                    # skip plain shared library e.g: 'libfoo.so'
+                    if file.endswith('.so') and not file.endswith(TAGGED) and not is_extension(file_path, name):
+                        continue
                     mtime = stat(file_path).st_mtime
 
                     if file == '__init__.py':
                         yield f'{module_name}', file_path, mtime
                     else:
-                        yield f'{module_name}.{file.split(".")[0]}', file_path, mtime
+                        yield f'{module_name}.{name}', file_path, mtime
                         # ('pkg.sub.module', '/pkg/sub/module.py', 123.45)
                         # ('pkg.sub.module', '/pkg/sub/module*.so', 123.45)
         if not recursive:

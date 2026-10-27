@@ -1,16 +1,37 @@
+import sys
 import pytest
-from dynamic_import.prep import EXT_SUFFIX, prep_package, prep_variables
+from os.path import join
+from conftest import native
+from importlib.machinery import EXTENSION_SUFFIXES
+from dynamic_import.prep import EXT_SUFFIX, prep_package, prep_variables, is_extension
 
 
 def test_cache():
-    assert isinstance(EXT_SUFFIX, tuple)
-    suffix = iter(EXT_SUFFIX)
-    assert next(suffix) == '.py'
-    cpython = next(suffix)
-    assert cpython.startswith('.cpython-') and cpython.endswith('.so')
-    abi3 = next(suffix)  # '.abi3.so', 3.15+: '.abi3-x86_64-linux-gnu.so' or '.abi3t-...'
-    assert abi3.startswith('.abi3') and abi3.endswith('.so')
-    assert '.so' not in EXT_SUFFIX  # bundled `libfoo.so` must not be treated as a module
+    # every suffix the interpreter can import, e.g: ('.py', '.cpython-315-x86_64-linux-gnu.so', ..., '.so')
+    assert EXT_SUFFIX == ('.py', *EXTENSION_SUFFIXES)
+    cpython = EXT_SUFFIX[1]
+    if sys.platform == 'win32':  # ('.py', '.cp315-win_amd64.pyd', '.pyd')
+        assert cpython.startswith('.cp3') and cpython.endswith('.pyd')
+        assert EXT_SUFFIX[-1] == '.pyd'
+    else:  # Linux, macOS: ('.py', '.cpython-315-x86_64-linux-gnu.so', '.abi3.so', ..., '.so')
+        assert cpython.startswith('.cpython-') and cpython.endswith('.so')
+        assert EXT_SUFFIX[-1] == '.so'
+
+
+def test_is_extension(tmp_dir):
+    def ext(data, name='foo'):
+        path = tmp_dir / f'{name}.so'
+        path.write_bytes(data)
+        return is_extension(str(path), name)
+
+    assert ext(b'\x7fELF...PyInit_foo\0...')
+    assert ext(b'..._PyInit_foo\0...')  # macOS symbol names start with `_`
+    assert ext(b'...PyModExport_foo\0...')  # 3.15+ export hook
+    assert ext(b'...PyInitU_' + 'é'.encode('punycode').replace(b'-', b'_') + b'\0...', 'é')  # non-ASCII name
+    assert not ext(b'')
+    assert not ext(b'...PyInit_foobar\0...')  # other module's init function
+    assert not ext(b'...PyInit_foo...')  # not a whole symbol name
+    assert not ext(b'\x7fELF...add\0...')  # plain shared library
 
 
 def test_prep_data_dir(tmp_dir):
@@ -20,19 +41,19 @@ def test_prep_data_dir(tmp_dir):
     (pkg_path / '__init__.py').write_text('')
     (pkg_path / 'data').mkdir()
     (pkg_path / 'data' / 'file.txt').write_text('')
-    (pkg_path / 'data' / 'libfoo.so').write_text('')  # shared library, not a module
+    (pkg_path / 'data' / 'libfoo.so').write_text('')  # shared library, not a module (no `PyInit_libfoo`)
     (pkg_path / '__pycache__').mkdir()
     (pkg_path / '__pycache__' / 'x.py').write_text('')
     (pkg_path / 'skip').mkdir()
     (pkg_path / 'skip' / 'deep').mkdir()
     (pkg_path / 'skip' / 'deep' / 'mod.py').write_text('x = 1')
 
-    info, dir_mtime = prep_package('pkg', f'{pkg_path}/', True, [], [f'{pkg_path}/skip/'])
+    info, dir_mtime = prep_package('pkg', join(pkg_path, ''), True, [], [join(pkg_path, 'skip', '')])
     assert info == {}
-    assert set(dir_mtime) == {f'{pkg_path}/', f'{pkg_path}/data/'}  # `__pycache__` and `skip/` not descended
+    assert set(dir_mtime) == {join(pkg_path, ''), join(pkg_path, 'data', '')}  # `__pycache__`, `skip/` not descended
 
     (pkg_path / 'data' / 'mod.py').write_text('x = 1')
-    info, _ = prep_package('pkg', f'{pkg_path}/', True, [], [])
+    info, _ = prep_package('pkg', join(pkg_path, ''), True, [], [])
     assert set(info) == {'x'}
 
 
@@ -70,17 +91,18 @@ def test_prep():
                      'test/basic/sub/auto_find.py',
                      ['my_function', 'var', 'MyClass', 'my_async_func'])
              }
-    find_dir_mtime = {'test/basic/',
-                      'test/basic/so/',
-                      'test/basic/sub/',
-                      'test/basic/sub/conflict/',
-                      'test/basic/sub/child/'}
+    match = {k: (module, native(path), variables) for k, (module, path, variables) in match.items()}
+    find_dir_mtime = set(map(native, ('test/basic/',
+                                      'test/basic/so/',
+                                      'test/basic/sub/',
+                                      'test/basic/sub/conflict/',
+                                      'test/basic/sub/child/')))
     cached_match = {}
     recursive = True
-    pkg_path = 'test/basic/'
+    pkg_path = native('test/basic/')
 
-    exclude_file = ['test/basic/sub/skip-me.py']
-    exclude_dir = ['test/basic/skip/']
+    exclude_file = [native('test/basic/sub/skip-me.py')]
+    exclude_dir = [native('test/basic/skip/')]
 
     info, dir_mtime = prep_package('basic', pkg_path, recursive, exclude_file, exclude_dir)
     for k, v in info.items():
@@ -91,7 +113,7 @@ def test_prep():
 
     # recusvie False test
     # -------------------
-    find_dir_mtime = {'test/basic/'}
+    find_dir_mtime = {native('test/basic/')}
     recursive = False
     match = {
             'DEFINE': ('basic',
@@ -109,6 +131,7 @@ def test_prep():
                     'test/basic/two.py',
                     ('two',))
            }
+    match = {k: (module, native(path), variables) for k, (module, path, variables) in match.items()}
     cached_match = {}
     info, dir_mtime = prep_package('basic', pkg_path, recursive, exclude_file, exclude_dir)
     for k, v in info.items():

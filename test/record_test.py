@@ -1,3 +1,4 @@
+import os
 from os.path import join
 from dynamic_import.record import add_record
 
@@ -24,7 +25,7 @@ def test_add_record(tmp_dir):
         assert file.read() == b'pkg/__pycache__/__init__.importer-313.pyc,,\r\n'
 
     # test sub-module, `importer()` passes the sub-package name
-    before, after = cache_path.split(f'/{pkg_name}/')
+    before, after = cache_path.split(f'{os.sep}{pkg_name}{os.sep}')
     cache_sub_module_path = join(before, pkg_name, 'sub_module', after)
     add_record(f'{pkg_name}.sub_module', cache_sub_module_path)
     with open(record_file, 'rb') as file:

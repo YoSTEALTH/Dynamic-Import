@@ -35,9 +35,12 @@ jobs:
   test:
     needs: build
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash  # Windows too: `rm -rf`, `dist/*.whl` globs
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
     steps:
       - uses: actions/checkout@v4

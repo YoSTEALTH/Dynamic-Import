@@ -1,6 +1,7 @@
 import re
 import pytest
 from types import ModuleType
+from conftest import native
 from dynamic_import.prep import EXT_SUFFIX, prep_package
 from dynamic_import.module import Module
 
@@ -8,9 +9,9 @@ from dynamic_import.module import Module
 def test_module():
     recursive = True
     pkg_name = 'basic'
-    pkg_path = 'test/basic/'
-    exclude_file = ['test/basic/sub/skip-me.py']
-    exclude_dir = ['test/basic/skip/']
+    pkg_path = native('test/basic/')
+    exclude_file = [native('test/basic/sub/skip-me.py')]
+    exclude_dir = [native('test/basic/skip/')]
     info, dir_mtime = prep_package(pkg_name, pkg_path, recursive, exclude_file, exclude_dir)
     find = ['DEFINE', 'MyClass', 'child', 'five', 'four', 'my_async_func', 'my_function', 'one',
             're_import', 'three', 'two', 'var']

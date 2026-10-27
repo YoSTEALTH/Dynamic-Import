@@ -1,8 +1,9 @@
+from os import sep
 from os.path import join
 from glob import glob
 
 
-SITE = '/site-packages/'
+SITE = f'{sep}site-packages{sep}'  # Windows: '\site-packages\'
 
 
 def add_record(pkg_name, cache_path):
@@ -30,7 +31,7 @@ def add_record(pkg_name, cache_path):
     site_path, _, add_path = cache_path.rpartition(SITE)
     site_dir = join(site_path, SITE[1:])
     # b'pkg/__pycache__/__init__.importer-313.pyc,,\r\n'
-    write_data = f'{add_path},,\r\n'.encode()
+    write_data = f'{add_path.replace(sep, "/")},,\r\n'.encode()  # `RECORD` paths always use '/'
     if found := find_record(site_dir, pkg_name.partition('.')[0]):
         with open(found, 'r+b') as file:
             content = file.read()

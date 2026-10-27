@@ -1,4 +1,19 @@
+import os
 import pytest
+
+
+def native(path):
+    ''' Path written with '/' in a test, as `os.path` builds it on this system.
+
+        Type
+            path:   str
+            return: str
+
+        Example
+            >>> native('test/basic/')
+            'test/basic/'        # Windows: 'test\\basic\\'
+    '''
+    return path.replace('/', os.sep)
 
 
 @pytest.fixture

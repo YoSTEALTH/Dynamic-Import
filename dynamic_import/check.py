@@ -1,8 +1,9 @@
-from os.path import normpath, isdir, isabs, isfile, join
+from os import sep
+from os.path import normpath, isdir, isabs, isfile, join, splitdrive
 from .prep import EXT_SUFFIX
 
 
-__all__ = 'IMPORTER_CALLED', 'importer_called', 'exclude_file_check', 'exclude_dir_check'
+__all__ = 'IMPORTER_CALLED', 'importer_called', 'is_rooted', 'exclude_file_check', 'exclude_dir_check'
 IMPORTER_CALLED = {}  # e.g {'/path/pkg/': {'/path/pkg/sub-dir/'}, '/path/flat/': None}
 # note: value is the set of excluded sub-directories, or `None` when `recursive=False`
 #       (the package did not scan any sub-directory, so all of them are free to call `importer()`).
@@ -54,6 +55,26 @@ def importer_called(pkg_path, recursive=True, exclude_dir=()):
     IMPORTER_CALLED[pkg_path] = set(exclude_dir) if recursive else None
 
 
+def is_rooted(path):
+    ''' Path that `join(pkg_path, path)` would not keep inside `pkg_path`
+
+        Type
+            path:   str
+            return: bool
+
+        Example
+            >>> is_rooted('/file.py')
+            True
+
+            >>> is_rooted('sub/file.py')
+            False
+
+        Note
+            - on Windows (3.13+) `isabs()` is `False` for '/file.py' and 'C:file.py', both still leave the package.
+    '''
+    return isabs(path) or bool(splitdrive(path)[0]) or path.startswith((sep, '/'))
+
+
 def exclude_file_check(exclude_file, pkg_path):
     '''
         Type
@@ -76,7 +97,7 @@ def exclude_file_check(exclude_file, pkg_path):
         exclude_file = (exclude_file,)
 
     for each in exclude_file:
-        if isabs(each):
+        if is_rooted(each):
             error = f'`importer(exclude_file)` received absolute path {each!r} must be relative path.'
             raise ValueError(error)
 
@@ -121,12 +142,12 @@ def exclude_dir_check(exclude_dir, pkg_path, recursive):
         exclude_dir = (exclude_dir,)
 
     for each in exclude_dir:
-        if isabs(each):
+        if is_rooted(each):
             error = f'`importer(exclude_dir)` received absolute path {each!r} must be relative path.'
             raise ValueError(error)
 
         # normalize path & make sure directory ends with '/'
-        each_dir = f'{normpath(join(pkg_path, each))}/'
+        each_dir = join(normpath(join(pkg_path, each)), '')
 
         if not each_dir.startswith(pkg_path):
             error = f'`importer(exclude_dir)` can not find directory {each_dir!r} within {pkg_path!r}'

@@ -11,7 +11,7 @@ import module as needed within the project and for external usage on run-time.
 * Just call `from <package> import <variable>` while coding and when end-user calls from your
   project. All names are accessible at top level, easy to remember.
 * Move/rename file within your project? No problem, auto updates.
-* Supports `.py` and extension module `.so` files (experimental)
+* Supports `.py` and extension module `.so` (`.pyd` on Windows) files (experimental)
 * Saves memory(for medium to large projects).
 
 Ultimate worry free management comfort as your project grows from small to large.
@@ -20,7 +20,7 @@ Ultimate worry free management comfort as your project grows from small to large
 ## Requires
 
 - Python 3.11+
-- Linux, MacOS
+- Linux, MacOS, Windows
 
 
 ## Install, update & uninstall
@@ -169,8 +169,10 @@ print(dir(pkg))                     # ['my_var', 'my_function', 'MyClass', ...]
 - Having module name and function name the same is ok! e.g. `from pkg import my_fun` while
   `./pkg/my_fun.py` and calling `my_fun()` will not conflict with module name. Module will
   still load in the background.
-- `importer()` also works with `.cpython-<...>.so` & `.abi3<...>.so` extension modules
-  (only tested with cython created `*.so`). Plain `libfoo.so` shared libraries are ignored.
+- `importer()` also works with every extension module suffix Python supports
+  (`importlib.machinery.EXTENSION_SUFFIXES`): `.cpython-<...>.so`, `.abi3<...>.so`, plain `.so` on Linux/macOS,
+  `.cp<...>.pyd` & `.pyd` on Windows. A plain `.so` without a Python init function (a bundled `libfoo.so`
+  shared library) is ignored, without being loaded.
 - `.so` should not contain any function/class that auto-run on import e.g. `run_something()`
 - To find the names inside a `.so` file it has to be imported, so the first run (no cache yet) imports
   every `.so` once. Later runs use the cache and load each `.so` only when one of its names is used.

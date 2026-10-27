@@ -1,9 +1,11 @@
 import os
 import sys
 import os.path
+from os.path import join
 import time
 import shutil
 import pytest
+from conftest import native
 from dynamic_import.version import version
 from dynamic_import.cache import CACHE_DIR_PATH, MARSHAL_VERSION, VERSION_TAG, CACHE_EXT, \
                                  pkg_cache_path, dump_cache, load_cache, create_cache_dir
@@ -12,7 +14,7 @@ from dynamic_import.cache import CACHE_DIR_PATH, MARSHAL_VERSION, VERSION_TAG, C
 def test_pkg_cache_path(tmp_path):
     func_name = 'importer'
     pkg_name = 'pkg'
-    pkg_path = f'{str(tmp_path / pkg_name)}/'
+    pkg_path = join(tmp_path / pkg_name, '')
     assert pkg_cache_path(pkg_path, '__init__.py', func_name) == str(
         tmp_path / pkg_name / f'__pycache__/__init__.{func_name}-{VERSION_TAG}{CACHE_EXT}')
     assert pkg_cache_path(pkg_path, 'in.py', func_name) == str(
@@ -20,12 +22,14 @@ def test_pkg_cache_path(tmp_path):
 
 
 def test_pkg_cache_path_prefix(monkeypatch):
-    monkeypatch.setattr(sys, 'pycache_prefix', '/tmp/pyc')
-    assert pkg_cache_path('/path/pkg/', '__init__.py', 'importer') == \
-        f'/tmp/pyc/path/pkg/__init__.importer-{VERSION_TAG}{CACHE_EXT}'
+    name = f'__init__.importer-{VERSION_TAG}{CACHE_EXT}'
+    monkeypatch.setattr(sys, 'pycache_prefix', native('/tmp/pyc'))
+    assert pkg_cache_path(native('/path/pkg/'), '__init__.py', 'importer') == native(f'/tmp/pyc/path/pkg/{name}')
+    if sys.platform == 'win32':  # drive is dropped like `cache_from_source()` does
+        monkeypatch.setattr(sys, 'pycache_prefix', 'C:\\pyc')
+        assert pkg_cache_path('D:\\path\\pkg\\', '__init__.py', 'importer') == f'C:\\pyc\\path\\pkg\\{name}'
     monkeypatch.setattr(sys, 'pycache_prefix', None)
-    assert pkg_cache_path('/path/pkg/', '__init__.py', 'importer') == \
-        f'/path/pkg/__pycache__/__init__.importer-{VERSION_TAG}{CACHE_EXT}'
+    assert pkg_cache_path(native('/path/pkg/'), '__init__.py', 'importer') == native(f'/path/pkg/__pycache__/{name}')
 
 
 def test_create_cache_dir_nested(tmp_dir):

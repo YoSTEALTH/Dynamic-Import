@@ -1,6 +1,9 @@
 import re
+import sys
 import pytest
-from dynamic_import.check import IMPORTER_CALLED, importer_called, exclude_dir_check, exclude_file_check
+from os.path import join
+from conftest import native
+from dynamic_import.check import IMPORTER_CALLED, importer_called, is_rooted, exclude_dir_check, exclude_file_check
 from dynamic_import.prep import EXT_SUFFIX
 
 
@@ -53,10 +56,17 @@ def test_importer_called_sub_first():
     assert importer_called('/path/top2/', recursive=False) is None
 
 
+def test_is_rooted():
+    assert is_rooted('/file.py') and is_rooted(native('/file.py'))
+    assert not any(map(is_rooted, ('file.py', 'sub/file.py', './file.py', native('sub/file.py'))))
+    if sys.platform == 'win32':  # 3.13+: `isabs()` is `False` for these, `join()` still leaves the package
+        assert is_rooted('C:file.py') and is_rooted('C:\\pkg\\file.py') and is_rooted('\\file.py')
+
+
 def test_exclude_file_check(tmp_dir):
     pkg_name = 'pkg'
     pkg_dir = tmp_dir / pkg_name
-    pkg_path = f'{str(pkg_dir)}/'
+    pkg_path = join(pkg_dir, '')
     file_path = pkg_dir / 'file.py'
 
     error = re.escape("`importer(exclude_file)` received absolute path '/file.py' must be relative path.")
@@ -85,7 +95,7 @@ def test_exclude_file_check(tmp_dir):
 def test_exclude_dir_check(tmp_dir):
     pkg_name = 'pkg'
     pkg_dir = tmp_dir / pkg_name
-    pkg_path = f'{str(pkg_dir)}/'
+    pkg_path = join(pkg_dir, '')
     recursive = True
     sub_dir = pkg_dir / 'sub-dir/'
     sub_sub_dir = pkg_dir / 'sub/sub-dir/'
@@ -94,12 +104,12 @@ def test_exclude_dir_check(tmp_dir):
     with pytest.raises(ValueError, match=error):
         exclude_dir_check('/sub-dir', pkg_path, recursive)
 
-    sub = f'{tmp_dir}/sub-dir/'
+    sub = join(tmp_dir, 'sub-dir', '')
     error = re.escape(f"`importer(exclude_dir)` can not find directory {sub!r} within {pkg_path!r}")
     with pytest.raises(ValueError, match=error):
         exclude_dir_check('../sub-dir', pkg_path, recursive)
 
-    error = re.escape(f"`importer(exclude_dir)` can not find directory: '{sub_dir}/'")
+    error = re.escape(f"`importer(exclude_dir)` can not find directory: {join(sub_dir, '')!r}")
     with pytest.raises(ValueError, match=error):
         exclude_dir_check('sub-dir', pkg_path, recursive)
 
@@ -111,9 +121,10 @@ def test_exclude_dir_check(tmp_dir):
     sub_sub_dir.mkdir()
 
     # single
-    assert exclude_dir_check('sub-dir', pkg_path, recursive) == [f'{sub_dir}/']
+    assert exclude_dir_check('sub-dir', pkg_path, recursive) == [join(sub_dir, '')]
     # multiple
-    assert exclude_dir_check(('sub-dir', 'sub/sub-dir'), pkg_path, recursive) == [f'{sub_dir}/', f'{sub_sub_dir}/']
+    assert exclude_dir_check(('sub-dir', 'sub/sub-dir'), pkg_path, recursive) == [join(sub_dir, ''),
+                                                                                  join(sub_sub_dir, '')]
     # not recursive: nothing to exclude
     assert exclude_dir_check(('sub-dir', 'sub/sub-dir'), pkg_path, False) == []
     assert exclude_dir_check(None, pkg_path, recursive) == []

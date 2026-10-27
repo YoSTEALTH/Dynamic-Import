@@ -1,6 +1,6 @@
-from os import remove
+from os import remove, sep, altsep
 from sys import _getframe, modules
-from os.path import exists, split
+from os.path import exists, split, join
 from .module import Module
 from .check import importer_called, exclude_file_check, exclude_dir_check
 from .cache import pkg_cache_path, create_cache_dir, dump_cache, load_cache
@@ -55,7 +55,9 @@ def importer(*, cache=True, recursive=True, exclude_file=None, exclude_dir=None)
     pkg_name = caller['__package__']
     file_path = caller['__file__']
     pkg_dir, init_file = split(file_path)  # '/path/pkg', '__init__.py'
-    pkg_path = f'{pkg_dir}/'  # '/path/pkg' to '/path/pkg/'
+    if altsep:  # Windows: a `sys.path` entry may use '/', `walk()` and `normpath()` give '\'
+        pkg_dir = pkg_dir.replace(altsep, sep)
+    pkg_path = join(pkg_dir, '')  # '/path/pkg' to '/path/pkg/'
 
     if not pkg_name or init_file != '__init__.py':
         raise ImportError('`importer()` must be called from within `__init__.py`')

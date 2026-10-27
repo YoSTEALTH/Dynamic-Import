@@ -55,6 +55,20 @@ def test_thread_safe(tmp_dir, make_pkg):
     assert marker.read_text() == 'x'
 
 
+def test_init_runs_once(tmp_dir, make_pkg):
+    # 2.9: `__init__.py` is never executed a second time, names defined after `importer()` are read lazily.
+    marker = tmp_dir / 'init_runs.txt'
+    init = 'from dynamic_import import importer\nimporter()\n' \
+           f'with open({str(marker)!r}, "a") as f:\n    f.write("x")\nafter = 2\n'
+    make_pkg('once_pkg', {'__init__.py': init, 'mod.py': 'lazy = 1\n'})
+    import once_pkg
+    from once_pkg import lazy, after
+    assert (lazy, after) == (1, 2)
+    assert once_pkg.after == 2
+    import once_pkg.mod  # noqa
+    assert marker.read_text() == 'x'
+
+
 def test_not_recursive_parent_and_sub_importer(make_pkg):
     # 2.2: `importer(recursive=False)` in the parent, `importer()` in a sub-package.
     make_pkg('flat_pkg', {'__init__.py': 'from dynamic_import import importer\nimporter(recursive=False)\n',
@@ -88,7 +102,8 @@ def test_tuple_assignment(make_pkg):
         from tuple_pkg import b  # noqa - annotation only
 
 
-@pytest.mark.skipif(os.getuid() == 0, reason='root ignores directory permissions')
+@pytest.mark.skipif(sys.platform == 'win32' or os.getuid() == 0,
+                    reason='root ignores directory permissions, Windows ignores read-only on directories')
 def test_read_only_package(make_pkg):
     # 1.3: cache directory can not be created, `importer()` must still work.
     pkg = make_pkg('ro_pkg', {'mod.py': 'ro = True\n'})
@@ -96,7 +111,7 @@ def test_read_only_package(make_pkg):
     try:
         from ro_pkg import ro
         assert ro is True
-        assert not os.path.exists(pkg_cache_path(f'{pkg}/', '__init__.py', 'importer'))
+        assert not os.path.exists(pkg_cache_path(os.path.join(pkg, ''), '__init__.py', 'importer'))
     finally:
         os.chmod(pkg, 0o755)
 
@@ -113,10 +128,10 @@ def test_pycache_prefix(tmp_dir, make_pkg, monkeypatch):
     with pytest.raises(ImportError):
         from prefix_b import alpha  # noqa - must not see package A's cache
 
-    cache_a = pkg_cache_path(f'{pkg_a}/', '__init__.py', 'importer')
-    cache_b = pkg_cache_path(f'{pkg_b}/', '__init__.py', 'importer')
+    cache_a = pkg_cache_path(os.path.join(pkg_a, ''), '__init__.py', 'importer')
+    cache_b = pkg_cache_path(os.path.join(pkg_b, ''), '__init__.py', 'importer')
     assert cache_a != cache_b
-    assert cache_a.startswith(str(prefix)) and cache_a.endswith('/prefix_a/__init__.importer-' +
+    assert cache_a.startswith(str(prefix)) and cache_a.endswith(f'{os.sep}prefix_a{os.sep}__init__.importer-' +
                                                                  cache_a.rsplit('-', 1)[1])
     assert os.path.exists(cache_a) and os.path.exists(cache_b)
     assert not os.path.exists(pkg_a / '__pycache__')
