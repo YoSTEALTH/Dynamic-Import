@@ -1,4 +1,4 @@
-[![Test status](https://github.com/yostealth/dynamic-import/actions/workflows/test.yml/badge.svg?branch=master&event=push)](https://github.com/yostealth/dynamic-import/actions/workflows/test.yml)
+[![CI status](https://github.com/yostealth/dynamic-import/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/yostealth/dynamic-import/actions/workflows/ci.yml)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/dynamic_import)
 
 # Dynamic Import
@@ -183,4 +183,4 @@ print(dir(pkg))                     # ['my_var', 'my_function', 'MyClass', ...]
 
 ## License
 
-Free, Public Domain (CC0). [Read more](https://github.com/YoSTEALTH/Dynamic-Import/blob/master/LICENSE.txt)
+Free, Public Domain (CC0). [Read more](https://github.com/YoSTEALTH/Dynamic-Import/blob/main/LICENSE.txt)
