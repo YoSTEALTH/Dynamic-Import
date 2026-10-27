@@ -1,5 +1,9 @@
 [![CI status](https://github.com/yostealth/dynamic-import/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/yostealth/dynamic-import/actions/workflows/ci.yml)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/dynamic_import)
+[![PyPI - Version](https://img.shields.io/pypi/v/dynamic_import)](https://pypi.org/project/dynamic-import/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dynamic_import)](https://pypi.org/project/dynamic-import/)
+[![OS - Linux | macOS | Windows](https://img.shields.io/badge/os-Linux%20%7C%20macOS%20%7C%20Windows-blue)](https://github.com/yostealth/dynamic-import/actions/workflows/ci.yml)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/dynamic_import)](https://pypistats.org/packages/dynamic-import)
+[![License - CC0 1.0](https://img.shields.io/pypi/l/dynamic_import)](https://github.com/yostealth/dynamic-import/blob/main/LICENSE.txt)
 
 # Dynamic Import
 
